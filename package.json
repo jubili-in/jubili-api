@@ -2,10 +2,10 @@
   "name": "kickstart",
   "version": "1.0.0",
   "description": "a e-commerce project B2C",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
-    "dev":"nodemon app.js",
-    "start": "node app.js"
+    "dev":"nodemon index.js",
+    "start": "node index.js"
   },
   "keywords": [],
   "author": "",
