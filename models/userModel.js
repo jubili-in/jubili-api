@@ -4,6 +4,7 @@ const userSchema = mongoose.Schema({
     fullname: String,
     email: String,
     password: String,
+    contact: Number,
     cart:{
         type: Array,
         default: [],
@@ -13,7 +14,6 @@ const userSchema = mongoose.Schema({
         type: Array,
         default: [],
     },
-    contact: Number,
     picture: String,
 });
 
