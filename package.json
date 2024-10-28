@@ -4,6 +4,7 @@
   "description": "��#\u0000 \u0000k\u0000i\u0000c\u0000k\u0000s\u0000t\u0000a\u0000r\u0000t\u0000\r\u0000 \u0000",
   "main": "app.js",
   "scripts": {
+    "dev":"nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -18,5 +19,8 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.7.3",
     "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
   }
 }
