@@ -12,7 +12,7 @@ const userSchema = mongoose.Schema({
         type: Array,
         default: [],
     },
-    orders: {
+    myorders: {
         type: Array,
         default: [],
     },

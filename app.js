@@ -5,6 +5,7 @@ require("dotenv").config();
 const cookieParser = require("cookie-parser");
 const path = require("path");
 const connectDB = require("./config/db");
+const userRoutes = require("./routes/userRoute")
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
