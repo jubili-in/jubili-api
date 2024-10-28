@@ -4,12 +4,14 @@ const userSchema = mongoose.Schema({
     fullname: String,
     email: String,
     password: String,
-    contact: Number,
+    phone: {
+        type: String,
+        unique: true,
+    },
     cart:{
         type: Array,
         default: [],
     },
-    isAdmin: Boolean,
     orders: {
         type: Array,
         default: [],
