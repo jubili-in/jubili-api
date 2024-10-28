@@ -12,6 +12,9 @@ app.use(cookieParser());
 
 connectDB();
 
+// user routes
+app.use("/api/users", userRoutes); 
+
 app.get("/", (req, res)=>{
     res.send('hey there')
 })
