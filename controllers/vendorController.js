@@ -1,13 +1,11 @@
 const User = require("../models/vendor.model.js");
 const jwt = require('jsonwebtoken');
 const bcrypt = require("bcrypt"); 
-require("dotenv").config(); 
-
+require("dotenv").config();
 
 const login = async (req, res) => {
     const { email, password } = req.query;
     try {
-
         // checking if user exists or not ???
         let user = await User.findOne({ email });
         console.log(user)
@@ -22,7 +20,7 @@ const login = async (req, res) => {
             return res.status(404).json({ message: "Wrong password" });
         }
 
-        const payload = {user: {id: user.id}}; 
+        const payload = {user: {id: user.id}, type: "vendor"}; 
         const token = jwt.sign(payload, process.env.JWT_SECRET); 
 
         return res.status(200).json({ 
@@ -37,7 +35,6 @@ const login = async (req, res) => {
         })
     }
 };
-
 
 const signup = async (req, res) => {
     const {name, username, email, phone, password} = req.query
@@ -62,7 +59,7 @@ const signup = async (req, res) => {
         await user.save(); 
         
         // token 
-        const payload = {user: {id: user.id}}; 
+        const payload = {user: {id: user.id}, type: "vendor"}; 
         const token = jwt.sign(payload, process.env.JWT_SECRET); 
 
         return res.status(200).json({
