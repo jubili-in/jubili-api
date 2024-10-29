@@ -22,7 +22,7 @@ const login = async (req, res) => {
         }
 
         const payload = { user: { id: user.id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set expiration time
+        const token = jwt.sign(payload, process.env.JWT_SECRET); // Set expiration time
 
         // Set cookie with token
         // res.cookie('token', token, {
@@ -36,6 +36,7 @@ const login = async (req, res) => {
         return res.status(200).json({
             message: "Hello User",
             user: user,
+            token: token,
         });
     } catch (e) {
         return res.status(e.status || 500).json({
@@ -68,7 +69,7 @@ const signup = async (req, res) => {
 
         // token
         const payload = { user: { id: user.id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }); // Set expiration time
+        const token = jwt.sign(payload, process.env.JWT_SECRET); // Set expiration time
 
         // Set cookie with token
         // res.cookie('token', token, {
@@ -81,7 +82,8 @@ const signup = async (req, res) => {
 
         return res.status(200).json({
             message: "success",
-            user: user
+            user: user,
+            token: token
         });
     } catch (e) {
         return res.status(400).json({
