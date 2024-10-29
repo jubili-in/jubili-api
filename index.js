@@ -5,8 +5,9 @@ const cors = require('cors');
 
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
-const userRoutes = require("./routes/userRoute")
-const vendorRoutes = require("./routes/vendorRoute")
+const userRoutes = require("./routes/userRoute");
+const vendorRoutes = require("./routes/vendorRoute");
+const productRoutes = require("./routes/productRoute");
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
@@ -38,6 +39,9 @@ connectDB();
 // Auth routes
 app.use("/api/users", userRoutes); 
 app.use("/api/vendors", vendorRoutes); 
+
+//Product routes
+app.use("/api/products", productRoutes);
 
 app.get("/", (req, res)=>{
     res.send('hey there')
