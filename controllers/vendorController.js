@@ -39,9 +39,9 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
     const {name, username, email, phone, password} = req.query
     try{ 
-        // checking if user already exists or not ???
         let user = await User.findOne({email}); 
 
+        // checking if user already exists in db
         if(user){ 
             return res.status(400).json({message: "User already exist"}); 
         }
@@ -72,7 +72,7 @@ const signup = async (req, res) => {
         return res.status(400).json({
             message: e.message, 
         })
-    }
+    } 
 };
 
 module.exports = { login, signup }
