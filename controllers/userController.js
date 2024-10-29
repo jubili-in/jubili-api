@@ -24,14 +24,12 @@ const login = async (req, res) => {
         const payload = { user: { id: user.id } };
         const token = jwt.sign(payload, process.env.JWT_SECRET); // Set expiration time
 
-        // Set cookie with token
-        // res.cookie('token', token, {
-        //     httpOnly: true, // Prevents JavaScript access to the cookie
-        //     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        //     // maxAge: 3600000 // 1 hour
-        // });
-
-        res.cookie('token', token);
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true, // Secure is required for SameSite=None cookies
+            sameSite: 'none', // Allows cross-origin cookies
+            maxAge: 3600000, // 1 hour
+        });        
 
         return res.status(200).json({
             message: "Hello User",
@@ -71,14 +69,12 @@ const signup = async (req, res) => {
         const payload = { user: { id: user.id } };
         const token = jwt.sign(payload, process.env.JWT_SECRET); // Set expiration time
 
-        // Set cookie with token
-        // res.cookie('token', token, {
-        //     httpOnly: true, // Prevents JavaScript access to the cookie
-        //     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        //     // maxAge: 3600000 // 1 hour
-        // });
-
-        res.cookie('token', token)
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: true, // Secure is required for SameSite=None cookies
+            sameSite: 'none', // Allows cross-origin cookies
+            maxAge: 3600000, // 1 hour
+        });        
 
         return res.status(200).json({
             message: "success",
