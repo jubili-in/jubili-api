@@ -54,5 +54,74 @@ const updateProduct = async (req, res) => {
 }
 
 
+const searchProducts = async (req, res) => {
+    const { productname, categories, minPrice, maxPrice, minRating, sortBy, page = 1, limit = 10 } = req.query;
 
-module.exports = {createProduct, updateProduct}
+    // Build a dynamic filter object
+    let filter = {};
+
+    if (productname) {
+        filter.productname = { $regex: productname, $options: "i" }; // Case-insensitive regex search
+    }
+
+    if (categories) {
+        // Assuming categories is a comma-separated string (e.g., "electronics,books")
+        filter.category = { $in: categories.split(",") };
+    }
+
+    if (minPrice || maxPrice) {
+        filter.price = {};
+        if (minPrice) filter.price.$gte = parseFloat(minPrice);
+        if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+    }
+
+    if (minRating) {
+        // Filter products by minimum average rating
+        filter["ratings.rating"] = { $gte: parseFloat(minRating) };
+    }
+
+    // Set up sorting based on query parameter
+    let sortOptions = {};
+    if (sortBy === "priceLowToHigh") {
+        sortOptions.price = 1;
+    } else if (sortBy === "priceHighToLow") {
+        sortOptions.price = -1;
+    } else if (sortBy === "newest") {
+        sortOptions.createdAt = -1;
+    } else {
+        // Default to relevance or another criteria if necessary
+        sortOptions.relevance = -1;
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+
+    try {
+        // Query with filters, sorting, and pagination
+        const products = await Product.find(filter)
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        // Optionally, you could count the total results for pagination metadata
+        const totalResults = await Product.countDocuments(filter);
+
+        return res.status(200).json({
+            message: "Search results",
+            products,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(totalResults / limit),
+                totalResults,
+            },
+        });
+    } catch (e) {
+        console.log(e);
+        return res.status(400).json({
+            message: e.message,
+        });
+    }
+};
+
+
+module.exports = {createProduct, updateProduct, searchProducts}
