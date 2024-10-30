@@ -1,4 +1,5 @@
 const Product = require('../models/product.model');
+const Vendor = require('../models/vendor.model');
 
 //creating a product
 const createProduct  = async (req, res) =>{
@@ -8,6 +9,10 @@ const createProduct  = async (req, res) =>{
         const newProduct = new Product({productname, description, price, category, vendor})
         //saving new product in db
         await newProduct.save();
+        //updates vendor
+        await Vendor.findByIdAndUpdate(vendor, {
+            $push: { products: newProduct._id }
+        });
 
         return res.status(200).json({
             message: "success",
@@ -20,7 +25,7 @@ const createProduct  = async (req, res) =>{
         })
     }
 }
-
+ 
 
 // updating a product
 const updateProduct = async (req, res) => {

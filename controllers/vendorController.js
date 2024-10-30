@@ -39,7 +39,7 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
     const {name, username, email, phone, password} = req.query
     try{ 
-        let user = await User.findOne({email}); 
+        let user = await User.findOne({email});
 
         // checking if user already exists in db
         if(user){ 
