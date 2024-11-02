@@ -53,6 +53,36 @@ const updateProduct = async (req, res) => {
     }
 }
 
+const deleteProduct = async (req, res) => {
+    const { id } = req.params; // Product ID from URL
+    const vendorIdFromToken = req.vendorId; // Vendor ID extracted from the token
+
+    try {
+        // Find the product to delete
+        const productToDelete = await Product.findById(id);
+
+        if (!productToDelete) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        // Validate vendor ID from token with vendor ID from product
+        if (productToDelete.vendor.toString() !== vendorIdFromToken) {
+            return res.status(403).json({ message: "Access denied. You can only delete your own products." });
+        }
+
+        // Delete the product
+        await Product.findByIdAndDelete(id);
+
+        // Remove the product from the vendor's products list
+        await Vendor.findByIdAndUpdate(vendorIdFromToken, { $pull: { products: id } });
+
+        return res.status(200).json({ message: "Product deleted successfully" });
+    } catch (e) {
+        console.log(e);
+        return res.status(400).json({ message: e.message });
+    }
+};
+
 
 const searchProducts = async (req, res) => {
     const { productname, categories, minPrice, maxPrice, minRating, sortBy, page = 1, limit = 10 } = req.query;
@@ -124,4 +154,4 @@ const searchProducts = async (req, res) => {
 };
 
 
-module.exports = {createProduct, updateProduct, searchProducts}
+module.exports = {createProduct, updateProduct, deleteProduct, searchProducts}
