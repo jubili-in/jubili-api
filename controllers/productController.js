@@ -19,13 +19,12 @@ const createProduct  = async (req, res) =>{
             product: newProduct,
         });
     } catch (e) {
-        console.log(e);
+         
         return res.status(400).json({
             message: e.message,
         })
     }
 }
- 
 
 // updating a product
 const updateProduct = async (req, res) => {
@@ -46,7 +45,7 @@ const updateProduct = async (req, res) => {
             product: updatedProduct,
         });
     } catch (e) {
-        console.log(e);
+         
         return res.status(400).json({
             message: e.message,
         });
@@ -78,11 +77,10 @@ const deleteProduct = async (req, res) => {
 
         return res.status(200).json({ message: "Product deleted successfully" });
     } catch (e) {
-        console.log(e);
+         
         return res.status(400).json({ message: e.message });
     }
 };
-
 
 const searchProducts = async (req, res) => {
     const { productname, categories, minPrice, maxPrice, minRating, sortBy, page = 1, limit = 10 } = req.query;
@@ -146,7 +144,33 @@ const searchProducts = async (req, res) => {
             },
         });
     } catch (e) {
-        console.log(e);
+         
+        return res.status(400).json({
+            message: e.message,
+        });
+    }
+};
+
+// Fetch products by seller ID
+const getProductsBySeller = async (req, res) => {
+    const vendorId = req.headers['vendor-id']; // Extract vendor ID from headers
+
+    if (!vendorId) {
+        return res.status(400).json({ message: "Vendor ID is required in headers" });
+    }
+
+    try {
+        const products = await Product.find({ vendor: vendorId });
+
+        if (!products.length) {
+            return res.status(404).json({ message: "No products found for this vendor" });
+        }
+
+        return res.status(200).json({
+            message: "Products fetched successfully",
+            products,
+        });
+    } catch (e) {
         return res.status(400).json({
             message: e.message,
         });
@@ -154,4 +178,4 @@ const searchProducts = async (req, res) => {
 };
 
 
-module.exports = {createProduct, updateProduct, deleteProduct, searchProducts}
+module.exports = {createProduct, updateProduct, deleteProduct, searchProducts, getProductsBySeller}

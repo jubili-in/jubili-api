@@ -48,5 +48,8 @@ app.get("/", (req, res)=>{
 })
 
 app.listen(process.env.PORT || 8000, ()=>{
-    console.log(`server is running on port ${process.env.PORT}`);
+    const port = process.env.PORT || 8000;
+    const currentTime = new Date().toLocaleString();
+    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server restarted at ${currentTime}`);
 }) 

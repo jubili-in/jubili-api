@@ -8,14 +8,14 @@ const login = async (req, res) => {
     try {
         // checking if user exists or not ???
         let user = await User.findOne({ email });
-        console.log(user)
+          
         if (!user) {
             return res.status(404).json({ message: "User not found"});
         }
 
         // checking if password matches or not ...
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log(isMatch); 
+          
         if (!isMatch) {
             return res.status(404).json({ message: "Wrong password" });
         }
@@ -51,9 +51,9 @@ const signup = async (req, res) => {
         
         // encrypt the password
         const salt = await bcrypt.genSalt(10); 
-        console.log(salt); 
+          
         user.password = await bcrypt.hash(password, salt); 
-        console.log(user.password); 
+          
 
         // saving the user
         await user.save(); 
