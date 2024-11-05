@@ -9,6 +9,15 @@ const productSchema = new mongoose.Schema({
         type: [String],
         default: [] 
     },
+    colors:{
+        type: [{
+            label: String,
+            size: String,
+        }],
+    },
+    sizes:{
+        type: [String],
+    },
     description: {
         type: String,
         required: true
