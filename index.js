@@ -8,6 +8,7 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoute");
 const vendorRoutes = require("./routes/vendorRoute");
 const productRoutes = require("./routes/productRoute");
+const cartRoutes = require("./routes/cartRoutes");
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
@@ -42,6 +43,9 @@ app.use("/api/vendors", vendorRoutes);
 
 //Product routes
 app.use("/api/products", productRoutes);
+
+// cart routes
+app.use("/api/cart", cartRoutes);
 
 app.get("/", (req, res)=>{
     res.send('hey there')
