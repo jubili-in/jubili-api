@@ -44,7 +44,7 @@ const login = async (req, res) => {
 };
 
 const signup = async (req, res) => {
-    const { name, username, email, phone, password } = req.query;
+    const { fullname, email, phone, password } = req.body;
     try {
         // checking if user already exists or not
         let user = await User.findOne({ email });
@@ -54,7 +54,7 @@ const signup = async (req, res) => {
         }
 
         // if not then create one
-        user = new User({ name, username, email, phone, password });
+        user = new User({ fullname, email, phone, password });
 
         // encrypt the password
         const salt = await bcrypt.genSalt(10);
