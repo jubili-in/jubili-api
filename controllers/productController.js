@@ -126,17 +126,29 @@ const searchProducts = async (req, res) => {
 
     try {
         // Query with filters, sorting, and pagination
-        const products = await Product.find(filter)
+        const products = await Product.find(filter).populate("vendor", "name")
             .sort(sortOptions)
             .skip(skip)
             .limit(parseInt(limit));
+
+        // changing the format of the response obj
+        const transformedProducts = products.map(product => { 
+            // deserializing the product object to remove catagories and make the image array to send only the first image
+            const {images, category, tags, ...rest} = product.toObject(); 
+            return { 
+                ...rest, 
+                image: images[0] ? images[0] : null
+            }
+
+        }); 
+
 
         // Optionally, you could count the total results for pagination metadata
         const totalResults = await Product.countDocuments(filter);
 
         return res.status(200).json({
             message: "Search results",
-            products,
+            products: transformedProducts,
             pagination: {
                 currentPage: parseInt(page),
                 totalPages: Math.ceil(totalResults / limit),
@@ -150,6 +162,41 @@ const searchProducts = async (req, res) => {
         });
     }
 };
+
+
+const productById = async(req, res) => { 
+    const {id }= req.params; 
+    try{ 
+        const product = await Product.findById(id).populate({ 
+            path: 'vendor',
+            select: 'name email phone products', 
+            populate: { 
+                path: 'products',
+                select: 'productname decrption price stock images'
+            }
+        })
+        if(!product){ 
+            return res.status(404).json({message: "Product Not Found"}); 
+        }
+
+
+
+
+        // if (product.vendor && product.vendor.products) {
+        //     product.vendor.products = product.vendor.products.map(prod => { 
+        //         const {images, ...rest} = prod.toObject();
+        //         return { 
+        //             ...rest, 
+        //             image: images[0] ? images[0] : null
+        //         } 
+        //     }); 
+        // }
+
+        return res.status(200).json({message: "Product", data: product}); 
+    }catch(e){ 
+        return res.status(500).json({message: e.message}); 
+    }
+}
 
 // Fetch products by seller ID
 const getProductsBySeller = async (req, res) => {
@@ -176,6 +223,6 @@ const getProductsBySeller = async (req, res) => {
         });
     }
 };
+// related items => 
 
-
-module.exports = {createProduct, updateProduct, deleteProduct, searchProducts, getProductsBySeller}
+module.exports = {createProduct, updateProduct, deleteProduct, searchProducts, getProductsBySeller, productById}
