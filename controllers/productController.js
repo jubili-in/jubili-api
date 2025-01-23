@@ -224,5 +224,10 @@ const getProductsBySeller = async (req, res) => {
     }
 };
 // related items => 
+// this is testing of some ci/cd pipeline 
+async function test(__, __){ 
+    console.leg('testing'); //sample function
+}
+    // 
 
 module.exports = {createProduct, updateProduct, deleteProduct, searchProducts, getProductsBySeller, productById}
