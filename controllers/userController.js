@@ -46,11 +46,24 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
     const { fullname, email, phone, password } = req.body;
     try {
+        // Add validation
+        if (!password || password.length < 6) {
+            return res.status(400).json({ 
+                message: "Password is required and should be at least 6 characters long" 
+            });
+        }
+
+        if (!email || !fullname) {
+            return res.status(400).json({ 
+                message: "Email and fullname are required" 
+            });
+        }
+
         // checking if user already exists or not
         let user = await User.findOne({ email });
 
         if (user) {
-            return res.status(400).json({ message: "User  already exists" });
+            return res.status(400).json({ message: "User already exists" });
         }
 
         // if not then create one
@@ -58,9 +71,9 @@ const signup = async (req, res) => {
 
         // encrypt the password
         const salt = await bcrypt.genSalt(10);
-        //  
+        console.log('Password received:', password);
+        console.log('Salt generated:', salt);
         user.password = await bcrypt.hash(password, salt);
-        //  
 
         // saving the user
         await user.save();
