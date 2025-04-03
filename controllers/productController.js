@@ -179,19 +179,6 @@ const productById = async(req, res) => {
             return res.status(404).json({message: "Product Not Found"}); 
         }
 
-
-
-
-        // if (product.vendor && product.vendor.products) {
-        //     product.vendor.products = product.vendor.products.map(prod => { 
-        //         const {images, ...rest} = prod.toObject();
-        //         return { 
-        //             ...rest, 
-        //             image: images[0] ? images[0] : null
-        //         } 
-        //     }); 
-        // }
-
         return res.status(200).json({message: "Product", data: product}); 
     }catch(e){ 
         return res.status(500).json({message: e.message}); 
