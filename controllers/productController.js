@@ -83,7 +83,7 @@ const deleteProduct = async (req, res) => {
 };
 
 const searchProducts = async (req, res) => {
-    const { productname, categories, minPrice, maxPrice, minRating, sortBy, page = 1, limit = 10 } = req.query;
+    const { productname, categories, minPrice, maxPrice, sortBy, page = 1, limit = 10 } = req.query;
 
     // Build a dynamic filter object
     let filter = {};
@@ -101,11 +101,6 @@ const searchProducts = async (req, res) => {
         filter.price = {};
         if (minPrice) filter.price.$gte = parseFloat(minPrice);
         if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
-    }
-
-    if (minRating) {
-        // Filter products by minimum average rating
-        filter["ratings.rating"] = { $gte: parseFloat(minRating) };
     }
 
     // Set up sorting based on query parameter
@@ -131,17 +126,14 @@ const searchProducts = async (req, res) => {
             .skip(skip)
             .limit(parseInt(limit));
 
-        // changing the format of the response obj
-        const transformedProducts = products.map(product => { 
-            // deserializing the product object to remove catagories and make the image array to send only the first image
-            const {images, category, tags, ...rest} = product.toObject(); 
-            return { 
-                ...rest, 
+        // Transform the response object
+        const transformedProducts = products.map(product => {
+            const { images, category, tags, ...rest } = product.toObject();
+            return {
+                ...rest,
                 image: images[0] ? images[0] : null
-            }
-
-        }); 
-
+            };
+        });
 
         // Optionally, you could count the total results for pagination metadata
         const totalResults = await Product.countDocuments(filter);
@@ -156,7 +148,6 @@ const searchProducts = async (req, res) => {
             },
         });
     } catch (e) {
-         
         return res.status(400).json({
             message: e.message,
         });
@@ -217,4 +208,4 @@ async function test(__, __){
 }
     // 
 
-module.exports = {createProduct, updateProduct, deleteProduct, searchProducts, getProductsBySeller, productById}
+module.exports = {createProduct, updateProduct, deleteProduct, searchProducts, getProductsBySeller, productById};
