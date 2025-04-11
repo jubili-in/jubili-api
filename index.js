@@ -4,11 +4,11 @@ require("dotenv").config();
 const cors = require('cors');
 
 const cookieParser = require("cookie-parser");
-const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoute");
 const vendorRoutes = require("./routes/vendorRoute");
 const productRoutes = require("./routes/productRoute");
 const cartRoutes = require("./routes/cartRoutes");
+const testRoute = require("./routes/testRoute");
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
@@ -35,8 +35,6 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 
-connectDB();
-
 // Auth routes
 app.use("/api/users", userRoutes); 
 app.use("/api/vendors", vendorRoutes); 
@@ -46,6 +44,10 @@ app.use("/api/products", productRoutes);
 
 // cart routes
 app.use("/api/cart", cartRoutes);
+
+
+//test route for dynamoDB connection
+app.use("/api", testRoute);
 
 app.get("/", (req, res)=>{
     res.send('hey there')
