@@ -1,3 +1,5 @@
+// File: index.js
+
 const express = require("express");
 const app = express();
 require("dotenv").config();
@@ -9,6 +11,7 @@ const vendorRoutes = require("./routes/vendorRoute");
 const productRoutes = require("./routes/productRoute");
 const cartRoutes = require("./routes/cartRoutes");
 const testRoute = require("./routes/testRoute");
+const sellerRoutes = require("./routes/sellerRoutes");
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
@@ -38,6 +41,7 @@ app.use(cookieParser());
 // Auth routes
 app.use("/api/users", userRoutes); 
 app.use("/api/vendors", vendorRoutes); 
+app.use("/api/sellers", sellerRoutes); // Seller routes
 
 //Product routes
 app.use("/api/products", productRoutes);

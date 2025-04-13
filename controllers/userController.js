@@ -23,10 +23,10 @@ const login = async (req, res) => {
     }).promise();
 
     const user = result.Items[0];
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: 'Wrong password' });
+    
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+        return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
     const payload = { user: { id: user.userId } };
     const token = jwt.sign(payload, process.env.JWT_SECRET);
