@@ -1,7 +1,7 @@
 {
-  "name": "kickstart",
+  "name": "edens",
   "version": "1.0.0",
-  "description": "a e-commerce project B2C",
+  "description": "Backend system for Edens, a multi-vendor e-commerce platform powered by AWS services.",
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
