@@ -1,6 +1,6 @@
 // File: services/sellerService.js
 
-const ddbDocClient = require('../config/dynamoDB');
+const { ddbDocClient } = require('../config/dynamoDB');
 const { v4: uuidv4 } = require('uuid');
 const { PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 

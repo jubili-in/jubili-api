@@ -2,21 +2,28 @@
 
 const { PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 const { ddbDocClient } = require('../config/dynamoDB');
-const KYC_TABLE = 'seller_kyc';
+const KYC_TABLE = 'sellerKycDetails';
 
 const submitKYC = async (sellerId, kycData) => {
-  const item = {
-    sellerId,
-    ...kycData,
-    kycSubmittedAt: new Date().toISOString(),
-  };
+  try {
+    const item = {
+      sellerId,
+      ...kycData,
+      kycSubmittedAt: new Date().toISOString(),
+    };
 
-  await ddbDocClient.send(new PutCommand({
-    TableName: KYC_TABLE,
-    Item: item,
-  }));
+    console.log("Submitting item to DynamoDB:", item);
 
-  return item;
+    await ddbDocClient.send(new PutCommand({
+      TableName: KYC_TABLE,
+      Item: item,
+    }));
+
+    return item;
+  } catch (err) {
+    console.error("Error in DynamoDB PutCommand:", err);
+    throw err; // Don't call res.send() here!
+  }
 };
 
 const getKYC = async (sellerId) => {
@@ -31,4 +38,4 @@ const getKYC = async (sellerId) => {
 module.exports = {
   submitKYC,
   getKYC,
-};  
+};
