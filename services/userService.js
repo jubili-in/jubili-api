@@ -11,17 +11,29 @@ const ddb = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = "Users";
 
-const getUserByEmail = async (email) => {
+// Check if any user exists with matching email OR phone
+const getUserByEmailOrPhone = async (email, phone) => {
+  const expressionValues = {};
+  const filters = [];
+
+  if (email) {
+    filters.push("email = :email");
+    expressionValues[":email"] = email;
+  }
+
+  if (phone) {
+    filters.push("phone = :phone");
+    expressionValues[":phone"] = phone;
+  }
+
   const command = new ScanCommand({
     TableName: TABLE_NAME,
-    FilterExpression: "email = :email",
-    ExpressionAttributeValues: {
-      ":email": email
-    }
+    FilterExpression: filters.join(" OR "),
+    ExpressionAttributeValues: expressionValues,
   });
 
   const response = await ddb.send(command);
-  return response.Items[0]; // Assuming emails are unique
+  return response.Items;
 };
 
 const createUser = async (userData) => {
@@ -41,4 +53,4 @@ const createUser = async (userData) => {
   return item;
 };
 
-module.exports = { getUserByEmail, createUser };
+module.exports = { getUserByEmailOrPhone, createUser };
