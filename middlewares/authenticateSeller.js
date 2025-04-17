@@ -10,7 +10,7 @@ const authenticateSeller = (req, res, next) => {
 
     if (!token) {
         console.log('No token provided');
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized! No token provided.' });
     }
     console.log("token: ", token); // Log the token for debugging
     
@@ -19,6 +19,10 @@ const authenticateSeller = (req, res, next) => {
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             console.error('Token verification error:', err);
+            return res.status(403).json({ error: 'Forbidden' });
+        }
+        if (decoded.sellerId === undefined) {
+            console.error('sellerId not found in token:', decoded);
             return res.status(403).json({ error: 'Forbidden' });
         }
         req.seller = { sellerId: decoded.sellerId }; // Assuming sellerId is in the token

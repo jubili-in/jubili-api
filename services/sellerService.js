@@ -19,7 +19,7 @@ const createSeller = async ({ email, passwordHash, phone }) => {
   await ddbDocClient.send(new PutCommand({
     TableName: SELLER_TABLE,
     Item: item,
-  }));
+  })); 
   return item;
 }; 
 
