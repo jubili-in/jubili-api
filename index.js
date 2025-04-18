@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const userRoutes = require("./routes/userRoute");
 const sellerRoutes = require("./routes/sellerRoutes");
 const productRoutes = require("./routes/productRoutes");
+const userActionRoutes = require("./routes/userActionRoutes");
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
@@ -41,6 +42,8 @@ app.use("/api/sellers", sellerRoutes); // Seller routes
 
 //product routes
 app.use("/api/products", productRoutes); // Product routes
+
+app.use("/api/user-actions", userActionRoutes); // User action routes
 
 app.get("/", (req, res)=>{
     res.send('hey there')
