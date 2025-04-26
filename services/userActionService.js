@@ -1,7 +1,11 @@
+//File: services/userActionService.js
+
 const { ddbDocClient } = require('../config/dynamoDB');
-const { PutCommand, QueryCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 
 const TABLE_NAME = 'userActions';
+const USER_LIKE_TABLE = 'userLikedProducts';
+const PRODUCT_TABLE = 'products';
 
 /**
  * Save a user action (e.g., add to cart, favorite).
@@ -44,7 +48,7 @@ const getUserActions = async ({ userId, actionType }) => {
     };
   
     if (actionType) {
-      params.KeyConditionExpression += ' AND begins_with(SK, :sk)'; // <-- fixed here
+      params.KeyConditionExpression += ' AND begins_with(SK, :sk)'; 
       params.ExpressionAttributeValues[':sk'] = `${actionType}#`;
     }
   
@@ -66,7 +70,7 @@ const deleteUserAction = async ({ userId, actionType, productId }) => {
         userId,
         SK,
       },
-      ReturnValues: 'ALL_OLD', // 👈 Returns the item that was deleted, or nothing if not found
+      ReturnValues: 'ALL_OLD', // Returns the item that was deleted, or nothing if not found
     });
   
     const result = await ddbDocClient.send(command);
@@ -79,10 +83,50 @@ const deleteUserAction = async ({ userId, actionType, productId }) => {
     return { success: true};
 };
   
-  
+const handleToggleLike = async (userId, productId, productCategory) => {
+  // Check if user already liked
+  const existingLike = await ddbDocClient.send(new GetCommand({
+    TableName: USER_LIKE_TABLE,
+    Key: { userId, productId }
+  }));
+
+  if (existingLike.Item) {
+    // User already liked -> REMOVE LIKE
+    await ddbDocClient.send(new DeleteCommand({
+      TableName: USER_LIKE_TABLE,
+      Key: { userId, productId }
+    }));
+
+    await ddbDocClient.send(new UpdateCommand({
+      TableName: PRODUCT_TABLE,
+      Key: { productId, productCategory },
+      UpdateExpression: 'ADD likeCount :dec',
+      ExpressionAttributeValues: { ':dec': -1 }
+    }));
+
+    return { message: 'Unliked the product' };
+
+  } else {
+    // User has NOT liked -> ADD LIKE
+    await ddbDocClient.send(new PutCommand({
+      TableName: USER_LIKE_TABLE,
+      Item: { userId, productId }
+    }));
+
+    await ddbDocClient.send(new UpdateCommand({
+      TableName: PRODUCT_TABLE,
+      Key: { productId, productCategory },
+      UpdateExpression: 'ADD likeCount :inc',
+      ExpressionAttributeValues: { ':inc': 1 }
+    }));
+
+    return { message: 'Liked the product' };
+  }
+};
 
 module.exports = {
     addUserAction: saveUserAction,
     getUserActions: getUserActions,
     removeUserAction: deleteUserAction,
+    handleToggleLike: handleToggleLike,
 };

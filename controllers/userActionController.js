@@ -31,3 +31,21 @@ exports.removeUserAction = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.toggleLike = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { productId, productCategory } = req.body;
+
+    if (!productId || !productCategory) {
+      return res.status(400).json({ message: 'Missing productId or productCategory' });
+    }
+
+    const result = await userActionService.handleToggleLike(userId, productId, productCategory);
+    res.status(200).json(result);
+
+  } catch (error) {
+    console.error('Error handling like toggle:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};

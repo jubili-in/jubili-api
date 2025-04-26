@@ -14,6 +14,7 @@ const createProduct = async (sellerId, productData, imageUrls) => {
     ...productData,
     imageUrls,
     createdAt: new Date().toISOString(),
+    likeCount: 0,
   };
 
   await ddbDocClient.send(new PutCommand({
