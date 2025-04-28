@@ -11,7 +11,7 @@ router.post('/signup', signupSeller);
 router.post('/login', loginSeller);
 
 // KYC routes
-router.post('/kyc', authenticateSeller, postKYC);
-router.get('/kyc', authenticateSeller, getKYCInfo);
+router.post('/upload-kyc', authenticateSeller, postKYC);
+router.get('/get-kyc', authenticateSeller, getKYCInfo);
 
 module.exports = router; 
