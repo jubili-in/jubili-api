@@ -14,7 +14,25 @@ const signupSeller = async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const seller = await createSeller({ email, passwordHash, phone });
-    res.status(201).json({ seller });
+
+    // creating a seller obj omiting password
+    const {passwordHash: _, ...sellerData} = seller; 
+
+    //creating token for seller
+    const token = jwt.sign({sellerId: seller.sellerId}, process.env.JWT_SECRET, {expiresIn: '7d'});
+    
+    
+    // httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      // secure: process.env.NODE_ENV === 'production', // only on HTTPS in production
+      sameSite: 'Strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+
+    res.status(201).json({ sellerData, message: 'Signup successful' });
+    
   } catch (error) {
     console.error('Signup Error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -31,7 +49,17 @@ const loginSeller = async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ sellerId: seller.sellerId }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, seller });
+
+
+    // httpOnly cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      // secure: process.env.NODE_ENV === 'production', // only on HTTPS in production
+      sameSite: 'Strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(200).json({message: 'Login Successfull'}); 
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'Server error' });

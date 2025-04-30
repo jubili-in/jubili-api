@@ -32,8 +32,8 @@ const signup = async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'none',
-      maxAge: 3600000,
+      sameSite: 'none', // need to strict  otherwise it will entertain req from any origin
+      maxAge: 3600000, //1 hour; need to be changed to 30 days; code =>  30 * 24 * 60 * 60 * 1000
     });
 
     res.status(200).json({ message: 'success', user: newUser, token });
