@@ -3,6 +3,10 @@ const multer = require('multer');
 const upload = multer();
 const productModel = require('../services/productService');
 const { uploadProductImage } = require('../services/s3/productImageService');
+const { generatePresignedUrl } = require('../services/s3/productImageService');
+
+const { ddbDocClient } = require('../config/dynamoDB');
+const { QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 const createProduct = async (req, res) => {
   try {
@@ -24,20 +28,15 @@ const createProduct = async (req, res) => {
 };
 
 
-const { ddbDocClient } = require('../config/dynamoDB');
-const { QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
-
 const getProducts = async (req, res) => {
   try {
     const userId = req.userId;
 
-    // 1. Fetch all products (replace this with your actual search logic later)
     const productsResult = await ddbDocClient.send(new ScanCommand({
       TableName: 'products',
     }));
     const products = productsResult.Items;
 
-    // 2. Fetch products liked by the user
     const likedResult = await ddbDocClient.send(new QueryCommand({
       TableName: 'userLikedProducts',
       KeyConditionExpression: 'userId = :uid',
@@ -47,10 +46,17 @@ const getProducts = async (req, res) => {
     }));
     const likedProductIds = new Set(likedResult.Items.map(item => item.productId));
 
-    // 3. Attach likedByUser to each product
-    const finalProducts = products.map(product => ({
-      ...product,
-      likedByUser: likedProductIds.has(product.productId)
+    // Replace image keys with signed URLs
+    const finalProducts = await Promise.all(products.map(async (product) => {
+      const signedImageUrls = await Promise.all(
+        product.imageUrls.map(async (key) => await generatePresignedUrl(key))
+      );
+
+      return {
+        ...product,
+        imageUrls: signedImageUrls,
+        likedByUser: likedProductIds.has(product.productId),
+      };
     }));
 
     res.status(200).json(finalProducts);
