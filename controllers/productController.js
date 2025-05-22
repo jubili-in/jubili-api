@@ -47,17 +47,20 @@ const getProducts = async (req, res) => {
     const likedProductIds = new Set(likedResult.Items.map(item => item.productId));
 
     // Replace image keys with signed URLs
-    const finalProducts = await Promise.all(products.map(async (product) => {
-      const signedImageUrls = await Promise.all(
-        product.imageUrls.map(async (key) => await generatePresignedUrl(key))
-      );
+    const finalProducts = await Promise.all(products
+      .filter(p => Array.isArray(p.imageUrls)) // skip products with invalid imageUrls
+      .map(async (product) => {
+        const signedImageUrls = await Promise.all(
+          product.imageUrls.map(async (key) => await generatePresignedUrl(key))
+        );
 
-      return {
-        ...product,
-        imageUrls: signedImageUrls,
-        likedByUser: likedProductIds.has(product.productId),
-      };
-    }));
+        return {
+          ...product,
+          imageUrls: signedImageUrls,
+          likedByUser: likedProductIds.has(product.productId),
+        };
+      }));
+
 
     res.status(200).json(finalProducts);
   } catch (error) {
