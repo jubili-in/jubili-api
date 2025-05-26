@@ -19,7 +19,7 @@ const signupSeller = async (req, res) => {
     const {passwordHash: _, ...sellerData} = seller; 
 
     //creating token for seller
-    const token = jwt.sign({sellerId: seller.sellerId}, process.env.JWT_SECRET, {expiresIn: '7d'});
+    const token = jwt.sign({sellerId: seller.sellerId}, process.env.JWT_SECRET, {expiresIn: '7d'}); // may need to change the token payload insted of only assigning the id we need to assign the seller itself with out the password
     
     
     // httpOnly cookie
@@ -43,15 +43,17 @@ const loginSeller = async (req, res) => {
   try {
     const { email, password } = req.body;
     const seller = await getSellerByEmail(email);
+    const sellerObj = {sellerId: seller.sellerId, email: seller.email, isVerified: seller.isVerified, phone: seller.phone}; // creating a seller obj omiting password
     if (!seller) return res.status(404).json({ message: 'Seller not found' });
 
     const isMatch = await bcrypt.compare(password, seller.passwordHash);
     if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const token = jwt.sign({ sellerId: seller.sellerId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ seller: sellerObj }   //this I have changed from sending only the sellerId to  entire seller obj
+      , process.env.JWT_SECRET, { expiresIn: '7d' }); 
 
 
-    // httpOnly cookie
+    // httpOnly cookie  
     res.cookie('token', token, {
       httpOnly: true,
       // secure: process.env.NODE_ENV === 'production', // only on HTTPS in production
