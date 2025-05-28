@@ -31,10 +31,36 @@ const createProduct = async (req, res) => {
 const getProducts = async (req, res) => {
   try {
     const userId = req.userId;
+    const { productName, productCategory, color } = req.query;
 
-    const productsResult = await ddbDocClient.send(new ScanCommand({
+    // Build filter expression dynamically
+    let FilterExpression = '';
+    let ExpressionAttributeValues = {};
+
+    if (productName) {
+      FilterExpression += 'contains(productName, :productName)';
+      ExpressionAttributeValues[':productName'] = productName;
+    }
+    if (productCategory) {
+      if (FilterExpression) FilterExpression += ' AND ';
+      FilterExpression += 'productCategory = :productCategory';
+      ExpressionAttributeValues[':productCategory'] = productCategory;
+    }
+    if (color) {
+      if (FilterExpression) FilterExpression += ' AND ';
+      FilterExpression += 'color = :color';
+      ExpressionAttributeValues[':color'] = color;
+    }
+
+    const scanParams = {
       TableName: 'products',
-    }));
+    };
+    if (FilterExpression) {
+      scanParams.FilterExpression = FilterExpression;
+      scanParams.ExpressionAttributeValues = ExpressionAttributeValues;
+    }
+
+    const productsResult = await ddbDocClient.send(new ScanCommand(scanParams));
     const products = productsResult.Items;
 
     const likedResult = await ddbDocClient.send(new QueryCommand({
@@ -48,7 +74,7 @@ const getProducts = async (req, res) => {
 
     // Replace image keys with signed URLs
     const finalProducts = await Promise.all(products
-      .filter(p => Array.isArray(p.imageUrls)) // skip products with invalid imageUrls
+      .filter(p => Array.isArray(p.imageUrls))
       .map(async (product) => {
         const signedImageUrls = await Promise.all(
           product.imageUrls.map(async (key) => await generatePresignedUrl(key))
@@ -60,7 +86,6 @@ const getProducts = async (req, res) => {
           likedByUser: likedProductIds.has(product.productId),
         };
       }));
-
 
     res.status(200).json(finalProducts);
   } catch (error) {
