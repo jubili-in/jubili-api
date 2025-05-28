@@ -13,6 +13,7 @@ const userActionRoutes = require("./routes/userActionRoutes");
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
+    "https://www.edens.in",
     "https://kickstart-59ea.onrender.com",
     "http://localhost:3000",              // Localhost for development
     "http://localhost:5173",              // Localhost for development
