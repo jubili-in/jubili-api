@@ -6,11 +6,12 @@ const { PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 
 const SELLER_TABLE = 'sellers';
 
-const createSeller = async ({ email, passwordHash, phone }) => {
+const createSeller = async ({ email, passwordHash, phone, businessName }) => {
   const sellerId = uuidv4();
   const item = {
     sellerId,
     email,
+    businessName,
     passwordHash,
     phone: phone || null,
     createdAt: new Date().toISOString(),
