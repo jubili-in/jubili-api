@@ -6,21 +6,20 @@ const { createSeller, getSellerByEmail } = require('../services/sellerService');
 
 const signupSeller = async (req, res) => {
   try {
-    const { email, password, phone } = req.body;
+    const { email, password, phone, businessName } = req.body;
     const existing = await getSellerByEmail(email);
     if (existing) {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const seller = await createSeller({ email, passwordHash, phone });
+    const seller = await createSeller({ email, passwordHash, phone, businessName});
 
     // creating a seller obj omiting password
     const {passwordHash: _, ...sellerData} = seller; 
 
     //creating token for seller
     const token = jwt.sign({sellerId: seller.sellerId}, process.env.JWT_SECRET, {expiresIn: '7d'}); // may need to change the token payload insted of only assigning the id we need to assign the seller itself with out the password
-    
     
     // httpOnly cookie
     res.cookie('token', token, {
