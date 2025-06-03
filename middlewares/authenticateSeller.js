@@ -21,11 +21,11 @@ const authenticateSeller = (req, res, next) => {
             console.error('Token verification error:', err);
             return res.status(403).json({ error: 'Forbidden' });
         }
-        if (decoded.sellerId === undefined) {
-            console.error('sellerId not found in token:', decoded);
+        if (decoded.seller.sellerId === undefined) {
+            console.error('sellerId not found in token: \n', decoded);
             return res.status(403).json({ error: 'Forbidden' });
         }
-        req.seller = { sellerId: decoded.sellerId }; // Assuming sellerId is in the token
+        req.seller = { sellerId: decoded.seller.sellerId }; // Assuming sellerId is in the token
         console.log('Authenticated Seller:', req.seller); // Log the seller object
         next();
     });
