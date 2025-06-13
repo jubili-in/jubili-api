@@ -10,6 +10,7 @@ const userRoutes = require("./routes/userRoute");
 const sellerRoutes = require("./routes/sellerRoutes");
 const productRoutes = require("./routes/productRoutes");
 const userActionRoutes = require("./routes/userActionRoutes");
+const orderRoutes = require('./routes/orderRoutes');
 
 // Whitelist configuration for CORS
 const allowedOrigins = [
@@ -45,6 +46,8 @@ app.use("/api/sellers", sellerRoutes); // Seller routes
 app.use("/api/products", productRoutes); // Product routes
 
 app.use("/api/user-actions", userActionRoutes); // User action routes
+
+app.use('/api/orders', orderRoutes);
 
 app.get("/", (req, res)=>{
     res.send('hey there')
