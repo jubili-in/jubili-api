@@ -7,4 +7,7 @@ router.post('/', userActionController.addUserAction);
 router.get('/', userActionController.getUserActions);
 router.delete('/', userActionController.removeUserAction);
 
+//get user cart data
+router.get('/cart', userActionController.getCart);
+
 module.exports = router;

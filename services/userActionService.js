@@ -1,11 +1,12 @@
 //File: services/userActionService.js
-
 const { ddbDocClient } = require('../config/dynamoDB');
-const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand ,BatchGetCommand } = require('@aws-sdk/lib-dynamodb');
+const productImageService = require('./s3/productImageService');
 
 const TABLE_NAME = 'userActions';
 const USER_LIKE_TABLE = 'userLikedProducts';
 const PRODUCT_TABLE = 'products';
+const SELLER_TABLE = 'sellers';
 
 /**
  * Save a user action (e.g., add to cart, favorite).
@@ -124,9 +125,129 @@ const handleToggleLike = async (userId, productId, productCategory) => {
   }
 };
 
+
+
+
+
+const getCartWithProducts = async (userId) => {
+  try {
+    // 1. Get cart items
+    const cartItems = await getUserActions({ userId, actionType: 'CART' });
+    if (!cartItems.length) {
+      return { items: [], price: 0, discount: 0, subtotal: 0, shippingCharge: 0, savingAmount: 0 };
+    }
+
+    // 2. Create unique product keys map to avoid duplicates
+    const productKeysMap = new Map();
+    cartItems.forEach(item => {
+      productKeysMap.set(item.productId, {
+        productId: item.productId,
+        productCategory: item.payload?.productCategory || 'Garments'
+      });
+    });
+
+    const productKeys = Array.from(productKeysMap.values());
+
+    // 3. Get product details (without duplicates)
+    const { Responses } = await ddbDocClient.send(new BatchGetCommand({
+      RequestItems: {
+        [PRODUCT_TABLE]: {
+          Keys: productKeys,
+          ProjectionExpression: 'productId, productName, price, discount, imageUrls, color, size, sellerId'
+        }
+      }
+    }));
+
+    const products = Responses[PRODUCT_TABLE] || [];
+
+    // 4. Get unique seller IDs
+    const sellerIds = [...new Set(products.map(p => p.sellerId).filter(Boolean))];
+    let sellers = [];
+
+    if (sellerIds.length > 0) {
+      const sellerResponse = await ddbDocClient.send(new BatchGetCommand({
+        RequestItems: {
+          [SELLER_TABLE]: {
+            Keys: sellerIds.map(sellerId => ({ sellerId })),
+            ProjectionExpression: 'sellerId, sellerName'
+          }
+        }
+      }));
+      sellers = sellerResponse.Responses[SELLER_TABLE] || [];
+    }
+
+    // 5. Build items array and calculate totals
+    let priceTotal = 0;
+    let discountTotal = 0;
+    let items = [];
+
+    for (const cartItem of cartItems) {
+      const product = products.find(p => p.productId === cartItem.productId);
+      if (!product) continue;
+
+      const seller = sellers.find(s => s.sellerId === product.sellerId);
+
+      const quantity = Number(cartItem.quantity) || 1;
+      const price = Number(product.price) || 0;
+      // Use discount percent (default 5%)
+      const discountOnProduct = (typeof product.discount === 'number' && product.discount > 0)
+        ? product.discount
+        : 5;
+      const discountDecimal = discountOnProduct / 100;
+      const discountAmount = Number((price * discountDecimal).toFixed(2)); // e.g., 29.95
+      const discountedPrice = Number((price - discountAmount).toFixed(2)); // e.g., 569.05
+
+      priceTotal += price * quantity;
+      discountTotal += discountAmount * quantity;
+
+      items.push({
+        productId: product.productId,
+        productName: product.productName,
+        imageUrl: Array.isArray(product.imageUrls) ? product.imageUrls[0] : product.imageUrls,
+        color: product.color,
+        size: product.size,
+        sellerId: product.sellerId,
+        sellerName: seller ? seller.sellerName : undefined,
+        price,
+        discountOnProduct,   // e.g., 5 for 5%
+        discountAmount,      // e.g., 29.95
+        quantity,
+        discountedPrice,     // e.g., 569.05
+      });
+    }
+
+    const subtotal = priceTotal - discountTotal;
+    const shippingCharge = subtotal < 2399 && subtotal > 0 ? 49 : 0; // Free shipping for orders above 2399
+
+    return {
+      items,
+      price: parseFloat(priceTotal.toFixed(2)),
+      discount: parseFloat(discountTotal.toFixed(2)),
+      "shipping-charge": shippingCharge,
+      subtotal: parseFloat((subtotal + shippingCharge).toFixed(2)),
+    };
+
+  } catch (error) {
+    console.error('Cart service error:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
 module.exports = {
     addUserAction: saveUserAction,
     getUserActions: getUserActions,
     removeUserAction: deleteUserAction,
     handleToggleLike: handleToggleLike,
+    getCartWithProducts: getCartWithProducts
 };
