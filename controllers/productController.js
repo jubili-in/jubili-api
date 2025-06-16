@@ -30,49 +30,39 @@ const createProduct = async (req, res) => {
 
 const getProducts = async (req, res) => {
   try {
-    const userId = req.userId;
-    const { productName, productCategory, color } = req.query;
-
-    // Build filter expression dynamically
-    let FilterExpression = '';
-    let ExpressionAttributeValues = {};
-
-    if (productName) {
-      FilterExpression += 'contains(productName, :productName)';
-      ExpressionAttributeValues[':productName'] = productName;
-    }
-    if (productCategory) {
-      if (FilterExpression) FilterExpression += ' AND ';
-      FilterExpression += 'productCategory = :productCategory';
-      ExpressionAttributeValues[':productCategory'] = productCategory;
-    }
-    if (color) {
-      if (FilterExpression) FilterExpression += ' AND ';
-      FilterExpression += 'color = :color';
-      ExpressionAttributeValues[':color'] = color;
+    const userId = req.user.userId;
+    const { productName } = req.query;
+    console.log(req.user);
+    
+    if (userId==null || userId == undefined) {
+      return res.status(500).json({ message: 'Illeh !!' });  
     }
 
-    const scanParams = {
+    // Step 1: Fetch all products
+    const productsResult = await ddbDocClient.send(new ScanCommand({
       TableName: 'products',
-    };
-    if (FilterExpression) {
-      scanParams.FilterExpression = FilterExpression;
-      scanParams.ExpressionAttributeValues = ExpressionAttributeValues;
+    }));
+    let products = productsResult.Items;
+
+    // Step 2: Optional in-memory filter by productName
+    if (productName) {
+      const lowerSearch = productName.toLowerCase();
+      products = products.filter(p =>
+        p.productName?.toLowerCase().includes(lowerSearch)
+      );
     }
 
-    const productsResult = await ddbDocClient.send(new ScanCommand(scanParams));
-    const products = productsResult.Items;
-
+    // Step 3: Fetch user liked product IDs
     const likedResult = await ddbDocClient.send(new QueryCommand({
       TableName: 'userLikedProducts',
       KeyConditionExpression: 'userId = :uid',
       ExpressionAttributeValues: {
-        ':uid': userId
-      }
+        ':uid': userId,
+      },
     }));
     const likedProductIds = new Set(likedResult.Items.map(item => item.productId));
 
-    // Replace image keys with signed URLs
+    // Step 4: Add liked flag and signed image URLs
     const finalProducts = await Promise.all(products
       .filter(p => Array.isArray(p.imageUrls))
       .map(async (product) => {
@@ -93,6 +83,7 @@ const getProducts = async (req, res) => {
     res.status(500).json({ message: 'Error fetching products' });
   }
 };
+
 
 module.exports = {
   createProduct,

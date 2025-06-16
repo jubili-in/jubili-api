@@ -17,7 +17,7 @@ const authenticateUser = (req, res, next) => {
         req.user = {
             userId: decoded.user?.id
         };
-
+    
         next();
     });
 };
