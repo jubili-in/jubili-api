@@ -1,7 +1,8 @@
 //File: services/userActionService.js
 const { ddbDocClient } = require('../config/dynamoDB');
 const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand ,BatchGetCommand } = require('@aws-sdk/lib-dynamodb');
-const productImageService = require('./s3/productImageService');
+const { generatePresignedUrl } = require('./s3/productImageService');
+const { v4: uuidv4 } = require('uuid');
 
 const TABLE_NAME = 'userActions';
 const USER_LIKE_TABLE = 'userLikedProducts';
@@ -128,16 +129,17 @@ const handleToggleLike = async (userId, productId, productCategory) => {
 
 
 
+/**
+ * Get the user's cart with product details.
+ */
 
 const getCartWithProducts = async (userId) => {
   try {
-    // 1. Get cart items
     const cartItems = await getUserActions({ userId, actionType: 'CART' });
     if (!cartItems.length) {
       return { items: [], price: 0, discount: 0, subtotal: 0, shippingCharge: 0, savingAmount: 0 };
     }
 
-    // 2. Create unique product keys map to avoid duplicates
     const productKeysMap = new Map();
     cartItems.forEach(item => {
       productKeysMap.set(item.productId, {
@@ -148,7 +150,6 @@ const getCartWithProducts = async (userId) => {
 
     const productKeys = Array.from(productKeysMap.values());
 
-    // 3. Get product details (without duplicates)
     const { Responses } = await ddbDocClient.send(new BatchGetCommand({
       RequestItems: {
         [PRODUCT_TABLE]: {
@@ -160,7 +161,6 @@ const getCartWithProducts = async (userId) => {
 
     const products = Responses[PRODUCT_TABLE] || [];
 
-    // 4. Get unique seller IDs
     const sellerIds = [...new Set(products.map(p => p.sellerId).filter(Boolean))];
     let sellers = [];
 
@@ -176,7 +176,6 @@ const getCartWithProducts = async (userId) => {
       sellers = sellerResponse.Responses[SELLER_TABLE] || [];
     }
 
-    // 5. Build items array and calculate totals
     let priceTotal = 0;
     let discountTotal = 0;
     let items = [];
@@ -189,30 +188,36 @@ const getCartWithProducts = async (userId) => {
 
       const quantity = Number(cartItem.quantity) || 1;
       const price = Number(product.price) || 0;
-      // Use discount percent (default 5%)
       const discountOnProduct = (typeof product.discount === 'number' && product.discount > 0)
         ? product.discount
         : 5;
       const discountDecimal = discountOnProduct / 100;
-      const discountAmount = Number((price * discountDecimal).toFixed(2)); // e.g., 29.95
-      const discountedPrice = Number((price - discountAmount).toFixed(2)); // e.g., 569.05
+      const discountAmount = Number((price * discountDecimal).toFixed(2));
+      const discountedPrice = Number((price - discountAmount).toFixed(2));
 
       priceTotal += price * quantity;
       discountTotal += discountAmount * quantity;
 
+      let imageUrl = null;
+      if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+        imageUrl = await generatePresignedUrl(product.imageUrls[0]);// only the first index of image URL
+      } else if (typeof product.imageUrls === 'string' && product.imageUrls) {
+        imageUrl = await generatePresignedUrl(product.imageUrls);
+      }
+
       items.push({
         productId: product.productId,
         productName: product.productName,
-        imageUrl: Array.isArray(product.imageUrls) ? product.imageUrls[0] : product.imageUrls,
+        imageUrl,
         color: product.color,
         size: product.size,
         sellerId: product.sellerId,
         sellerName: seller ? seller.sellerName : undefined,
         price,
-        discountOnProduct,   // e.g., 5 for 5%
-        discountAmount,      // e.g., 29.95
+        discountOnProduct,
+        discountAmount,
         quantity,
-        discountedPrice,     // e.g., 569.05
+        discountedPrice,
       });
     }
 
