@@ -13,7 +13,6 @@ const createProduct = async (req, res) => {
     const sellerId = req.seller.sellerId;
     const productData = req.body;
     const productImages = req.files;
-
     const imageUrls = await Promise.all(productImages.map(async (image) => {
       const fileType = image.originalname.split('.').pop();
       return await uploadProductImage(image.buffer, fileType);
