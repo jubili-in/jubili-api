@@ -16,6 +16,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const allowedOrigins = [
     "https://www.edens.in",
     "https://kickstart-59ea.onrender.com",
+    "https://edens-admin-ui.onrender.com",
     "http://localhost:3000",              // Localhost for development
     "http://localhost:5173",              // Localhost for development
     /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/ // Local network IPs
