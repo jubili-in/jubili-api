@@ -6,6 +6,8 @@ const { PutCommand } = require('@aws-sdk/lib-dynamodb');
 
 const PRODUCT_TABLE = 'products';
 
+
+
 const createProduct = async (sellerId, productData, imageUrls) => {
   const productId = uuidv4();
   const item = {

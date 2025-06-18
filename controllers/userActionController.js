@@ -51,7 +51,6 @@ exports.toggleLike = async (req, res) => {
 };
 
 
-
 exports.getCart = async (req, res) => {
   try {
     const { userId } = req.query;
@@ -61,27 +60,9 @@ exports.getCart = async (req, res) => {
     }
 
     // Get complete cart data from service
-    const { 
-      items, 
-      price: totalOriginalPrice,
-      discount: totalDiscount,
-      subtotal,
-      "shipping-charge": shippingCharge
-    } = await userActionService.getCartWithProducts(userId);
-
-    const finalTotal = Number((subtotal + shippingCharge).toFixed(2));
-
-    const response = {
-      items,
-      totalOriginalPrice, // Total of actual prices
-      totalDiscount,      // Total discount amount
-      subtotal,           // Price after discounts
-      shippingCharge,     // Shipping charge (49 if subtotal < 1199)
-      finalTotal,         // Subtotal + Shipping Charge
-      message: "Cart retrieved successfully"
-    };
-
-    res.status(200).json(response);
+    const cartData = await userActionService.getCartWithProducts(userId);
+    res.status(200).json(cartData);
+    
   } catch (error) {
     console.error('Error in getCart:', error);
     res.status(500).json({ 

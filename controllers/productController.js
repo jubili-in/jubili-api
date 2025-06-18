@@ -8,6 +8,7 @@ const { generatePresignedUrl } = require('../services/s3/productImageService');
 const { ddbDocClient } = require('../config/dynamoDB');
 const { QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
+
 const createProduct = async (req, res) => {
   try {
     const sellerId = req.seller.sellerId;

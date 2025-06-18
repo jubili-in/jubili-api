@@ -1,6 +1,6 @@
 //File: services/userActionService.js
 const { ddbDocClient } = require('../config/dynamoDB');
-const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand ,BatchGetCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand ,BatchGetCommand,ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { generatePresignedUrl } = require('./s3/productImageService');
 const { v4: uuidv4 } = require('uuid');
 
@@ -137,33 +137,32 @@ const getCartWithProducts = async (userId) => {
   try {
     const cartItems = await getUserActions({ userId, actionType: 'CART' });
     if (!cartItems.length) {
-      return { items: [], price: 0, discount: 0, subtotal: 0, shippingCharge: 0, savingAmount: 0 };
+      return { 
+        items: [], 
+        totalOriginalPrice: 0, 
+        totalDiscount: 0, 
+        subtotal: 0, 
+        shippingCharge: 0, 
+        finalTotal: 0,
+        message: "Cart is empty"
+      };
     }
 
-    const productKeysMap = new Map();
-    cartItems.forEach(item => {
-      productKeysMap.set(item.productId, {
-        productId: item.productId,
-        productCategory: item.payload?.productCategory || 'Garments'
-      });
-    });
+    // Get all product IDs from cart
+    const productIds = cartItems.map(item => item.productId);
 
-    const productKeys = Array.from(productKeysMap.values());
-
-    const { Responses } = await ddbDocClient.send(new BatchGetCommand({
-      RequestItems: {
-        [PRODUCT_TABLE]: {
-          Keys: productKeys,
-          ProjectionExpression: 'productId, productName, price, discount, imageUrls, color, size, sellerId'
-        }
+    // Find all products in cart
+    const { Items: products = [] } = await ddbDocClient.send(new ScanCommand({
+      TableName: PRODUCT_TABLE,
+      FilterExpression: 'contains(:productIds, productId)',
+      ExpressionAttributeValues: {
+        ':productIds': productIds
       }
     }));
 
-    const products = Responses[PRODUCT_TABLE] || [];
-
+    // Get seller information
     const sellerIds = [...new Set(products.map(p => p.sellerId).filter(Boolean))];
     let sellers = [];
-
     if (sellerIds.length > 0) {
       const sellerResponse = await ddbDocClient.send(new BatchGetCommand({
         RequestItems: {
@@ -176,31 +175,39 @@ const getCartWithProducts = async (userId) => {
       sellers = sellerResponse.Responses[SELLER_TABLE] || [];
     }
 
-    let priceTotal = 0;
-    let discountTotal = 0;
-    let items = [];
+    // Process cart items and calculate totals
+    let totalOriginalPrice = 0;
+    let totalDiscount = 0;
+    const items = [];
 
     for (const cartItem of cartItems) {
       const product = products.find(p => p.productId === cartItem.productId);
       if (!product) continue;
 
       const seller = sellers.find(s => s.sellerId === product.sellerId);
-
       const quantity = Number(cartItem.quantity) || 1;
       const price = Number(product.price) || 0;
-      const discountOnProduct = (typeof product.discount === 'number' && product.discount > 0)
-        ? product.discount
-        : 5;
-      const discountDecimal = discountOnProduct / 100;
-      const discountAmount = Number((price * discountDecimal).toFixed(2));
-      const discountedPrice = Number((price - discountAmount).toFixed(2));
+      
+      // Calculate discount (use product discount or 0 if not set)
+      const discountOnProduct = Number(product.discount) || 0;
+      
+      // Calculate per-unit discount and discounted price
+      const discountAmountPerUnit = Number((price * discountOnProduct / 100).toFixed(2));
+      const discountedPricePerUnit = Number((price - discountAmountPerUnit).toFixed(2));
+      
+      // Calculate totals for this item
+      const itemOriginalPrice = price * quantity;
+      const itemDiscount = discountAmountPerUnit * quantity;
+      const itemDiscountedPrice = discountedPricePerUnit * quantity;
 
-      priceTotal += price * quantity;
-      discountTotal += discountAmount * quantity;
+      // Update cart totals
+      totalOriginalPrice += itemOriginalPrice;
+      totalDiscount += itemDiscount;
 
+      // Generate image URL
       let imageUrl = null;
       if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
-        imageUrl = await generatePresignedUrl(product.imageUrls[0]);// only the first index of image URL
+        imageUrl = await generatePresignedUrl(product.imageUrls[0]);
       } else if (typeof product.imageUrls === 'string' && product.imageUrls) {
         imageUrl = await generatePresignedUrl(product.imageUrls);
       }
@@ -211,25 +218,36 @@ const getCartWithProducts = async (userId) => {
         imageUrl,
         color: product.color,
         size: product.size,
+        gender: product.gender,
+        material: product.material,
+        brand: product.brand,
         sellerId: product.sellerId,
-        sellerName: seller ? seller.sellerName : undefined,
+        sellerName: seller?.sellerName,
         price,
         discountOnProduct,
-        discountAmount,
+        discountAmount: discountAmountPerUnit,
         quantity,
-        discountedPrice,
+        // discountedPrice: discountedPricePerUnit, // This is per unit price
+        totalDiscountedPrice: itemDiscountedPrice, // Added total for the quantity
+        productCategory: product.productCategory,
+        description: product.description
       });
     }
 
-    const subtotal = priceTotal - discountTotal;
-    const shippingCharge = subtotal < 2399 && subtotal > 0 ? 49 : 0; // Free shipping for orders above 2399
+    // Calculate final totals
+    const subtotal = totalOriginalPrice - totalDiscount;
+    const shippingCharge = subtotal < 2399 && subtotal > 0 ? 49 : 0;
+    const finalTotal = subtotal + shippingCharge;
 
     return {
+      totalItems: items.length,
       items,
-      price: parseFloat(priceTotal.toFixed(2)),
-      discount: parseFloat(discountTotal.toFixed(2)),
-      "shipping-charge": shippingCharge,
-      subtotal: parseFloat((subtotal + shippingCharge).toFixed(2)),
+      totalOriginalPrice: parseFloat(totalOriginalPrice.toFixed(2)),
+      totalDiscount: parseFloat(totalDiscount.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      shippingCharge,
+      finalTotal: parseFloat(finalTotal.toFixed(2)),
+      message: "Cart retrieved successfully"
     };
 
   } catch (error) {
@@ -237,8 +255,6 @@ const getCartWithProducts = async (userId) => {
     throw error;
   }
 };
-
-
 
 
 
