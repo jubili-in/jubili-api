@@ -25,8 +25,8 @@ const signupSeller = async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       // secure: process.env.NODE_ENV === 'production', // only on HTTPS in production
-      // sameSite: 'Strict', // need to be changed to strict when ready for production
-      sameSite: 'none',  // making the sameSite to none for accesing while in developement 
+      sameSite: 'None', // need the none setting to send res to different origins
+      
       secure: true,
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
@@ -57,8 +57,9 @@ const loginSeller = async (req, res) => {
     // httpOnly cookie  
     res.cookie('token', token, {
       httpOnly: true,
+      secure: true, 
       // secure: process.env.NODE_ENV === 'production', // only on HTTPS in production
-      sameSite: 'Strict',
+      sameSite: 'None',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
