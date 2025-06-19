@@ -34,7 +34,7 @@ exports.removeUserAction = async (req, res) => {
 
 exports.toggleLike = async (req, res) => {
   try {
-    const userId = req.userId;
+    const userId = req.user.userId;
     const { productId, productCategory } = req.body;
 
     if (!productId || !productCategory) {
