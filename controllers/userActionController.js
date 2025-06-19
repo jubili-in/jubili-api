@@ -49,3 +49,25 @@ exports.toggleLike = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+exports.getCart = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    if (!userId) {
+      return res.status(400).json({ error: "userId is required" });
+    }
+
+    // Get complete cart data from service
+    const cartData = await userActionService.getCartWithProducts(userId);
+    res.status(200).json(cartData);
+    
+  } catch (error) {
+    console.error('Error in getCart:', error);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Failed to retrieve cart data' 
+    });
+  }
+};

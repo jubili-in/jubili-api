@@ -1,11 +1,13 @@
 //File: services/userActionService.js
-
 const { ddbDocClient } = require('../config/dynamoDB');
-const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, UpdateCommand, DeleteCommand ,BatchGetCommand,ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { generatePresignedUrl } = require('./s3/productImageService');
+const { v4: uuidv4 } = require('uuid');
 
 const TABLE_NAME = 'userActions';
 const USER_LIKE_TABLE = 'userLikedProducts';
 const PRODUCT_TABLE = 'products';
+const SELLER_TABLE = 'sellers';
 
 /**
  * Save a user action (e.g., add to cart, favorite).
@@ -124,9 +126,149 @@ const handleToggleLike = async (userId, productId, productCategory) => {
   }
 };
 
+
+
+
+/**
+ * Get the user's cart with product details.
+ */
+
+const getCartWithProducts = async (userId) => {
+  try {
+    const cartItems = await getUserActions({ userId, actionType: 'CART' });
+    if (!cartItems.length) {
+      return { 
+        items: [], 
+        totalOriginalPrice: 0, 
+        totalDiscount: 0, 
+        subtotal: 0, 
+        shippingCharge: 0, 
+        finalTotal: 0,
+        message: "Cart is empty"
+      };
+    }
+
+    // Get all product IDs from cart
+    const productIds = cartItems.map(item => item.productId);
+
+    // Find all products in cart
+    const { Items: products = [] } = await ddbDocClient.send(new ScanCommand({
+      TableName: PRODUCT_TABLE,
+      FilterExpression: 'contains(:productIds, productId)',
+      ExpressionAttributeValues: {
+        ':productIds': productIds
+      }
+    }));
+
+    // Get seller information
+    const sellerIds = [...new Set(products.map(p => p.sellerId).filter(Boolean))];
+    let sellers = [];
+    if (sellerIds.length > 0) {
+      const sellerResponse = await ddbDocClient.send(new BatchGetCommand({
+        RequestItems: {
+          [SELLER_TABLE]: {
+            Keys: sellerIds.map(sellerId => ({ sellerId })),
+            ProjectionExpression: 'sellerId, sellerName'
+          }
+        }
+      }));
+      sellers = sellerResponse.Responses[SELLER_TABLE] || [];
+    }
+
+    // Process cart items and calculate totals
+    let totalOriginalPrice = 0;
+    let totalDiscount = 0;
+    const items = [];
+
+    for (const cartItem of cartItems) {
+      const product = products.find(p => p.productId === cartItem.productId);
+      if (!product) continue;
+
+      const seller = sellers.find(s => s.sellerId === product.sellerId);
+      const quantity = Number(cartItem.quantity) || 1;
+      const price = Number(product.price) || 0;
+      
+      // Calculate discount (use product discount or 0 if not set)
+      const discountOnProduct = Number(product.discount) || 0;
+      
+      // Calculate per-unit discount and discounted price
+      const discountAmountPerUnit = Number((price * discountOnProduct / 100).toFixed(2));
+      const discountedPricePerUnit = Number((price - discountAmountPerUnit).toFixed(2));
+      
+      // Calculate totals for this item
+      const itemOriginalPrice = price * quantity;
+      const itemDiscount = discountAmountPerUnit * quantity;
+      const itemDiscountedPrice = discountedPricePerUnit * quantity;
+
+      // Update cart totals
+      totalOriginalPrice += itemOriginalPrice;
+      totalDiscount += itemDiscount;
+
+      // Generate image URL
+      let imageUrl = null;
+      if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+        imageUrl = await generatePresignedUrl(product.imageUrls[0]);
+      } else if (typeof product.imageUrls === 'string' && product.imageUrls) {
+        imageUrl = await generatePresignedUrl(product.imageUrls);
+      }
+
+      items.push({
+        productId: product.productId,
+        productName: product.productName,
+        imageUrl,
+        color: product.color,
+        size: product.size,
+        gender: product.gender,
+        material: product.material,
+        brand: product.brand,
+        sellerId: product.sellerId,
+        sellerName: seller?.sellerName,
+        price,
+        discountOnProduct,
+        discountAmount: discountAmountPerUnit,
+        quantity,
+        // discountedPrice: discountedPricePerUnit, // This is per unit price
+        totalDiscountedPrice: itemDiscountedPrice, // Added total for the quantity
+        productCategory: product.productCategory,
+        description: product.description
+      });
+    }
+
+    // Calculate final totals
+    const subtotal = totalOriginalPrice - totalDiscount;
+    const shippingCharge = subtotal < 2399 && subtotal > 0 ? 49 : 0;
+    const finalTotal = subtotal + shippingCharge;
+
+    return {
+      totalItems: items.length,
+      items,
+      totalOriginalPrice: parseFloat(totalOriginalPrice.toFixed(2)),
+      totalDiscount: parseFloat(totalDiscount.toFixed(2)),
+      subtotal: parseFloat(subtotal.toFixed(2)),
+      shippingCharge,
+      finalTotal: parseFloat(finalTotal.toFixed(2)),
+      message: "Cart retrieved successfully"
+    };
+
+  } catch (error) {
+    console.error('Cart service error:', error);
+    throw error;
+  }
+};
+
+
+
+
+
+
+
+
+
+
 module.exports = {
     addUserAction: saveUserAction,
     getUserActions: getUserActions,
     removeUserAction: deleteUserAction,
     handleToggleLike: handleToggleLike,
+    getCartWithProducts: getCartWithProducts
 };

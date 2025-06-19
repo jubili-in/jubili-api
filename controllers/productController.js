@@ -8,12 +8,12 @@ const { generatePresignedUrl } = require('../services/s3/productImageService');
 const { ddbDocClient } = require('../config/dynamoDB');
 const { QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
+
 const createProduct = async (req, res) => {
   try {
     const sellerId = req.seller.sellerId;
     const productData = req.body;
     const productImages = req.files;
-
     const imageUrls = await Promise.all(productImages.map(async (image) => {
       const fileType = image.originalname.split('.').pop();
       return await uploadProductImage(image.buffer, fileType);
