@@ -22,10 +22,6 @@ const createOrder = async (orderData) => {
     transactionId: `txn_${uuidv4().replace(/-/g, '').substring(0, 12)}`,
     userId: orderData.userId,
     sellerId: orderData.sellerId,
-    // GSI1PK: `USER#${orderData.userId}`,
-    // GSI1SK: `ORDER#${currentDate}`,
-    // GSI2PK: `SELLER#${orderData.sellerId}`,
-    // GSI2SK: `ORDER#${currentDate}`,
     productId: orderData.productId,
     productName: orderData.productName,
     quantity: orderData.quantity,
@@ -55,6 +51,40 @@ const createOrder = async (orderData) => {
 
   return orderItem;
 };
+
+const updateOrderPaymentStatus = async (orderId, updates) => {
+  const params = {
+    TableName: ORDERS_TABLE,
+    Key: {
+      PK: `ORDER#${orderId}`,
+      SK: `ORDER#${orderId}`,
+    },
+    UpdateExpression: "SET paymentStatus = :status, paymentMethod = :method, updatedAt = :updatedAt",
+    ExpressionAttributeValues: {
+      ":status": updates.paymentStatus,
+      ":method": updates.paymentMethod,
+      ":updatedAt": new Date().toISOString(),
+    },
+  };
+
+  await ddbDocClient.send(new UpdateCommand(params));
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const getOrdersByUser = async (userId) => {
   try {
@@ -209,6 +239,7 @@ const cancelUserOrder = async (cleanOrderId, userId) => {
 
 module.exports = {
   createOrder,
+  updateOrderPaymentStatus,
   getOrdersByUser,
   getOrdersBySeller,
   updateOrderStatus,

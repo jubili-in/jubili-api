@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateUser } = require('../middlewares/authenticateUser');
-const orderController = require('../controllers/orderController');
 const { authenticateSeller } = require('../middlewares/authenticateSeller');
+const orderController = require('../controllers/orderController');
 
-router.post('/order-place', authenticateUser, orderController.placeOrder);
+// User routes
+router.post('/create', authenticateUser, orderController.createOrder);
 router.get('/user/:userId', authenticateUser, orderController.getUserOrders);
-router.get('/seller/orders', authenticateSeller, orderController.getOrderBySeller);
-router.patch('/seller/status/:orderId', authenticateSeller, orderController.updateOrderStatus);
-router.patch('/user/cancel/:orderId', authenticateUser, orderController.cancelUserOrder);
+router.patch('/cancel/:orderId', authenticateUser, orderController.cancelUserOrder);
+
+// Seller routes
+router.get('/seller', authenticateSeller, orderController.getOrderBySeller);
+router.patch('/status/:orderId', authenticateSeller, orderController.updateOrderStatus);
 
 module.exports = router;
