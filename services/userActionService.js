@@ -300,6 +300,7 @@ async function getLikedProducts(userId) {
       productId: product.productId,
       productName: product.productName,
       productDescription: product.description,
+      productCategory: product.productCategory, // Add productCategory
       imageUrl
     });
   }
