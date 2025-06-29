@@ -299,7 +299,7 @@ async function getLikedProducts(userId) {
     result.push({
       productId: product.productId,
       productName: product.productName,
-      productDescription: product.description,
+      productDescription: product.productDescription,
       productCategory: product.productCategory, // Add productCategory
       imageUrl
     });

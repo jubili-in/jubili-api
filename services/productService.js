@@ -2,7 +2,7 @@
 
 const { ddbDocClient } = require('../config/dynamoDB');
 const { v4: uuidv4 } = require('uuid');
-const { PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 
 const PRODUCT_TABLE = 'products';
 
@@ -37,6 +37,15 @@ const createProduct = async (sellerId, productData, imageUrls) => {
   return item;
 };
 
+const getProductById = async (productId) => {
+  const result = await ddbDocClient.send(new GetCommand({
+    TableName: PRODUCT_TABLE,
+    Key: { productId },
+  }));
+  return result.Item;
+};
+
 module.exports = {
   createProduct,
+  getProductById,
 };
