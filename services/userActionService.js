@@ -256,19 +256,61 @@ const getCartWithProducts = async (userId) => {
   }
 };
 
+/**
+ * Get liked products of a user with product details and presigned image URL.
+ */
+async function getLikedProducts(userId) {
+  // 1. Get liked product IDs
+  const likedResult = await ddbDocClient.send(new QueryCommand({
+    TableName: USER_LIKE_TABLE,
+    KeyConditionExpression: 'userId = :uid',
+    ExpressionAttributeValues: { ':uid': userId },
+  }));
+  const likedItems = likedResult.Items || [];
+  if (!likedItems.length) return [];
 
+  // 2. Remove duplicate productIds
+  const productIdSet = new Set(likedItems.map(item => item.productId));
+  const productIds = Array.from(productIdSet);
 
+  // 3. Fetch product details using Scan (since we only have productId)
+  let products = [];
+  if (productIds.length > 0) {
+    // DynamoDB Scan with FilterExpression for productIds
+    const scanResult = await ddbDocClient.send(new ScanCommand({
+      TableName: PRODUCT_TABLE,
+      FilterExpression: 'contains(:productIds, productId)',
+      ExpressionAttributeValues: {
+        ':productIds': productIds
+      }
+    }));
+    products = scanResult.Items || [];
+  }
 
-
-
-
-
-
+  // 4. Map and generate presigned URL for first image
+  const result = [];
+  for (const product of products) {
+    let imageUrl = null;
+    if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+      imageUrl = await generatePresignedUrl(product.imageUrls[0]);
+    } else if (typeof product.imageUrls === 'string' && product.imageUrls) {
+      imageUrl = await generatePresignedUrl(product.imageUrls);
+    }
+    result.push({
+      productId: product.productId,
+      productName: product.productName,
+      productDescription: product.description,
+      imageUrl
+    });
+  }
+  return result;
+}
 
 module.exports = {
     addUserAction: saveUserAction,
     getUserActions: getUserActions,
     removeUserAction: deleteUserAction,
     handleToggleLike: handleToggleLike,
-    getCartWithProducts: getCartWithProducts
+    getCartWithProducts: getCartWithProducts,
+    getLikedProducts
 };
