@@ -11,6 +11,6 @@ router.patch('/cancel/:orderId', authenticateUser, orderController.cancelUserOrd
 
 // Seller routes
 router.get('/seller', authenticateSeller, orderController.getOrderBySeller);
-// router.patch('/status/:orderId', authenticateSeller, orderController.updateOrderStatus);
+router.patch('/status/:orderId', authenticateSeller, orderController.updateOrderStatus);
 
 module.exports = router;
