@@ -1,6 +1,6 @@
 const orderService = require('../services/orderService');
 
-const placeOrder = async (req, res) => {
+const createOrder = async (req, res) => {
   try {
     const { 
       userId,
@@ -261,7 +261,7 @@ console.log('Order ID param:', req.params.orderId);
 };
 
 module.exports = {
-  placeOrder,
+  createOrder,
   getUserOrders,
   getOrderBySeller,
   updateOrderStatus,
