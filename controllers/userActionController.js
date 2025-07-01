@@ -71,3 +71,17 @@ exports.getCart = async (req, res) => {
     });
   }
 };
+
+exports.getLikedProducts = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    // You need to implement getLikedProducts in your userActionService
+    const likedProducts = await userActionService.getLikedProducts(userId);
+    res.status(200).json(likedProducts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

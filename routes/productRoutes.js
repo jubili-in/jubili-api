@@ -11,5 +11,6 @@ const upload = multer();
 router.post('/create-product', authenticateSeller, upload.array('productImages'), productController.createProduct);
 router.get('/search-products', authenticateUser ,productController.getProducts);
 router.post('/like', authenticateUser, userActionController.toggleLike);
+router.get('/products/:id', productController.getProductById);
 
 module.exports = router;
