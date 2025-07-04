@@ -9,6 +9,13 @@ const { ddbDocClient } = require('../config/dynamoDB');
 const { QueryCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 
+
+
+
+const productService = require('../services/productService');
+
+
+
 const createProduct = async (req, res) => {
   try {
     const sellerId = req.seller.sellerId;
@@ -28,6 +35,8 @@ const createProduct = async (req, res) => {
 };
 
 
+
+
 const getProducts = async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -43,6 +52,9 @@ const getProducts = async (req, res) => {
       TableName: 'products',
     }));
     let products = productsResult.Items;
+    
+    console.log(products.length);
+
 
     // Step 2: Optional in-memory filter by productName
     if (productName) {
@@ -85,23 +97,34 @@ const getProducts = async (req, res) => {
 };
 
 
-const getProductById = async (req, res) => {
+
+
+
+
+const getProductDetails = async (req, res) => {
+  const { productId, productCategory } = req.params;
+
+  // console.log("productId:", productId);
+  // console.log("productCategory:", productCategory);
+
   try {
-    const { id } = req.params;
-    const product = await productModel.getProductById(id);
+    const product = await productService.getProductById(productId, productCategory);
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.status(200).json(product);
+
+    res.json(product);
   } catch (error) {
-    console.error('Error fetching product by ID:', error);
-    res.status(500).json({ message: 'Error fetching product' });
+    console.error('Error fetching product:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 
 module.exports = {
   createProduct,
   getProducts,
-  getProductById,
+  getProductDetails
 };

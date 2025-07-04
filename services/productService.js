@@ -37,12 +37,18 @@ const createProduct = async (sellerId, productData, imageUrls) => {
   return item;
 };
 
-const getProductById = async (productId) => {
-  const result = await ddbDocClient.send(new GetCommand({
+
+const getProductById = async (productId, productCategory) => {
+  const params = {
     TableName: PRODUCT_TABLE,
-    Key: { productId },
-  }));
-  return result.Item;
+    Key: {
+      productId,
+      productCategory
+    }
+  };
+
+  const result = await ddbDocClient.send(new GetCommand(params));
+  return result.Item || null;
 };
 
 module.exports = {
