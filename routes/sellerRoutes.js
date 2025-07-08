@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { signupSeller, loginSeller } = require('../controllers/sellerController');
+const { signupSeller, loginSeller, logoutSeller } = require('../controllers/sellerController');
 const { postKYC, getKYCInfo } = require('../controllers/sellerKycController');
 const {authenticateSeller} = require('../middlewares/authenticateSeller');
 const {verifySeller} = require('../auth/verify.seller'); 
@@ -10,6 +10,7 @@ const {verifySeller} = require('../auth/verify.seller');
 // Auth routes
 router.post('/signup', signupSeller);
 router.post('/login', loginSeller);
+router.post('/logout', logoutSeller);
 
 // Auth Verify 
 router.get('/verify-seller', verifySeller); 
