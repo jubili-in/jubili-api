@@ -8,7 +8,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-const ORDERS_TABLE = process.env.ORDERS_TABLE || 'Orders';
+const ORDERS_TABLE = 'Orders';
 
 // Create Razorpay order
 exports.createRazorpayOrder = async (req, res) => {
