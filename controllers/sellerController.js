@@ -70,4 +70,18 @@ const loginSeller = async (req, res) => {
   }
 };
 
-module.exports = { signupSeller, loginSeller };
+const logoutSeller = (req, res) => { 
+  try{ 
+    res.clearCookie('token', { 
+      httpOnly: true,
+      secure: true, 
+      sameSite: 'None'
+    })
+    return res.status(200).json({message: 'Logout Successfull'}); 
+  }catch(err) { 
+    // console.log(err.message); 
+    return res.status(500).json({message: err.message}); 
+  }
+}
+
+module.exports = { signupSeller, loginSeller, logoutSeller };
