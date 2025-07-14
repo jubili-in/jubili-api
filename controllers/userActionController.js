@@ -35,13 +35,13 @@ exports.removeUserAction = async (req, res) => {
 exports.toggleLike = async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { productId, productCategory } = req.body;
+    const { productId } = req.body; 
 
-    if (!productId || !productCategory) {
-      return res.status(400).json({ message: 'Missing productId or productCategory' });
+    if (!productId) {
+      return res.status(400).json({ message: 'Missing productId' });
     }
 
-    const result = await userActionService.handleToggleLike(userId, productId, productCategory);
+    const result = await userActionService.handleToggleLike(userId, productId);
     res.status(200).json(result);
 
   } catch (error) {

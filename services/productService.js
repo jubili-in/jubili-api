@@ -36,6 +36,7 @@ const createProduct = async (data, imageUrls) => {
     discount: data.discount ? Number(data.discount) : 0,
     stock: data.stock ? Number(data.stock) : 0,
     imageUrls: imageUrls,
+    likeCount: 0,
     createdAt: new Date().toISOString(),
   });
 

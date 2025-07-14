@@ -17,6 +17,7 @@ module.exports = {
     discount: 'number',
     stock: 'number',
     imageUrls: 'list',
+    likeCount: 'number',
     createdAt: 'string',
   }
 };

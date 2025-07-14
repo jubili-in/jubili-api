@@ -107,7 +107,7 @@ const likeProduct = async (req, res) => {
     return res.status(401).json({ error: 'Unauthorized. Please log in to like products.' });
   }
 
-  if (!productId) {
+  if (!productId) { 
     return res.status(400).json({ error: 'productId is required' });
   }
 

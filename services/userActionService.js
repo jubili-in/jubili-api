@@ -85,7 +85,7 @@ const deleteUserAction = async ({ userId, actionType, productId }) => {
     return { success: true};
 };
   
-const handleToggleLike = async (userId, productId, productCategory) => {
+const handleToggleLike = async (userId, productId) => {
   // Check if user already liked
   const existingLike = await ddbDocClient.send(new GetCommand({
     TableName: USER_LIKE_TABLE,
@@ -101,7 +101,7 @@ const handleToggleLike = async (userId, productId, productCategory) => {
 
     await ddbDocClient.send(new UpdateCommand({
       TableName: PRODUCT_TABLE,
-      Key: { productId, productCategory },
+      Key: { productId },
       UpdateExpression: 'ADD likeCount :dec',
       ExpressionAttributeValues: { ':dec': -1 }
     }));
@@ -117,7 +117,7 @@ const handleToggleLike = async (userId, productId, productCategory) => {
 
     await ddbDocClient.send(new UpdateCommand({
       TableName: PRODUCT_TABLE,
-      Key: { productId, productCategory },
+      Key: { productId },
       UpdateExpression: 'ADD likeCount :inc',
       ExpressionAttributeValues: { ':inc': 1 }
     }));
