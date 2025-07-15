@@ -1,18 +1,24 @@
 const productService = require('../services/productService');
 const { generatePresignedUrl } = require('../services/s3/productImageService');
-const userLikeService = require('../services/userLikeService');
 
 const createProduct = async (req, res) => {
   try {
+     const sellerId = req.seller.sellerId;
+    //  console.log(sellerId, "Seller ID from middleware");
     const data = req.body;
     const imageUrls = req.files.map(file => file.key);
-    const result = await productService.createProduct(data, imageUrls);
+    console.log(imageUrls, "Image URLs from S3:", req.files);
+
+    // console.log(data)
+
+    const result = await productService.createProduct(data, imageUrls, sellerId);
     res.status(201).json(result);
   } catch (err) {
     console.error("Create product error:", err);
     res.status(500).json({ error: 'Failed to create product' });
   }
 };
+
 
 const getProductById = async (req, res) => {
   try {
@@ -33,32 +39,24 @@ const getProductById = async (req, res) => {
 };
 
 
-const deleteProduct = async (req, res) => {
-  try {
-    await productService.deleteProduct(req.params.id);
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ error: 'Error deleting product' });
-  }
-};
 
 const getAllProducts = async (req, res) => {
   try {
     const products = await productService.getAllProducts();
-
+    
     const updatedProducts = await Promise.all(products.map(async (product) => {
       if (!Array.isArray(product.imageUrls)) return product;
-
+      
       const signedUrls = await Promise.all(
         product.imageUrls.map(key => generatePresignedUrl(key))
       );
-
+      
       return {
         ...product,
         imageUrls: signedUrls
       };
     }));
-
+    
     res.json(updatedProducts);
   } catch (err) {
     console.error(err);
@@ -74,22 +72,22 @@ const searchProducts = async (req, res) => {
     if (!productName) {
       return res.status(400).json({ error: 'Missing productName in query' });
     }
-
+    
     const matchedProducts = await productService.searchProductsByName(productName);
-
+    
     const updated = await Promise.all(matchedProducts.map(async (product) => {
       if (!Array.isArray(product.imageUrls)) return product;
-
+      
       const signedUrls = await Promise.all(
         product.imageUrls.map(key => generatePresignedUrl(key))
       );
-
+      
       return {
         ...product,
         imageUrls: signedUrls
       };
     }));
-
+    
     res.json(updated);
   } catch (err) {
     console.error("Search product error:", err);
@@ -99,49 +97,28 @@ const searchProducts = async (req, res) => {
 
 
 
-const likeProduct = async (req, res) => {
-  const userId = req.user?.userId;
-  const { productId } = req.body;
-
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized. Please log in to like products.' });
-  }
-
-  if (!productId) { 
-    return res.status(400).json({ error: 'productId is required' });
-  }
-
+const deleteProduct = async (req, res) => {
   try {
-    console.log("Trying to like product:", productId, "by user:", userId);
-    await userLikeService.likeProduct(userId, productId);
-    res.status(201).json({ message: 'Product liked', data: { userId, productId } });
+    const productId = req.params.id;
+    const sellerId = req.seller?.sellerId;
+    const requestSellerId = req.body?.sellerId;
+
+    if (!productId) {
+      return res.status(400).json({ error: 'Product ID is required' });
+    }
+
+    if (requestSellerId !== sellerId) {
+      return res.status(403).json({ error: 'Unauthorized to delete this product' });
+    }
+
+    await productService.deleteProduct(productId, sellerId);
+    return res.json({ success: true, message: 'Product deleted successfully' });
+
   } catch (err) {
-    console.error('Like product error:', err); // ✅ log exact error
-    res.status(500).json({ error: 'Failed to like product' });
+    console.error('Delete Product Error:', err);
+    return res.status(500).json({ error: 'Error deleting product' });
   }
 };
-
-
-const getLikedProducts = async (req, res) => {
-  const userId = req.user?.userId;
-
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized. Please log in.' });
-  }
-
-  try {
-    const likes = await userLikeService.getLikedProducts(userId);
-
-    return res.status(200).json({
-      message: likes.length === 0 ? 'No liked products found.' : 'Liked products fetched',
-      likedProducts: likes,
-    });
-  } catch (err) {
-    console.error('Get liked products error:', err);
-    res.status(500).json({ error: 'Failed to fetch liked products' });
-  }
-};
-
 
 
 module.exports = {
@@ -149,7 +126,5 @@ module.exports = {
   getProductById,
   deleteProduct,
   getAllProducts,
-  searchProducts,
-  likeProduct,
-  getLikedProducts
+  searchProducts
 };
