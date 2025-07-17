@@ -8,7 +8,7 @@ module.exports = {
     categoryId: 'string',
     brand: 'string',
     color: 'string',
-    size: 'list',
+    size: 'string',
     gender: 'string',
     material: 'string',
     productName: 'string',
@@ -19,5 +19,6 @@ module.exports = {
     imageUrls: 'list',
     likeCount: 'number',
     createdAt: 'string',
+    linkedItems: 'list',
   }
 };

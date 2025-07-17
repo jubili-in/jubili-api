@@ -3,7 +3,6 @@ const { v4: uuidv4 } = require('uuid');
 const { PutCommand, GetCommand, ScanCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const productModel = require('../models/productModel');
 
-// Removes undefined/null inside arrays
 function deepClean(value) {
   if (Array.isArray(value)) {
     return value.filter(v => v !== undefined && v !== null);
@@ -20,14 +19,14 @@ function clean(item) {
   );
 }
 
-const createProduct = async (data, imageUrls) => {
+const createProduct = async (data, imageUrls, sellerId) => {
   const item = clean({
     productId: uuidv4(),
-    sellerId: data.sellerId,
+    sellerId: sellerId,
     categoryId: data.categoryId,
     brand: data.brand,
     color: data.color,
-    size: data.size ? JSON.parse(data.size) : [],
+    size: data.size,
     gender: data.gender,
     material: data.material,
     productName: data.productName,
@@ -37,6 +36,7 @@ const createProduct = async (data, imageUrls) => {
     stock: data.stock ? Number(data.stock) : 0,
     imageUrls: imageUrls,
     likeCount: 0,
+    linkedItems: data.linkedItems ? data.linkedItems.map(item => item.productId) : [],
     createdAt: new Date().toISOString(),
   });
 
@@ -51,6 +51,7 @@ const createProduct = async (data, imageUrls) => {
   return item;
 };
 
+
 const getProductById = async (id) => {
   const result = await ddbDocClient.send(new GetCommand({
     TableName: productModel.tableName,
@@ -59,12 +60,7 @@ const getProductById = async (id) => {
   return result.Item || null;
 };
 
-const deleteProduct = async (id) => {
-  await ddbDocClient.send(new DeleteCommand({
-    TableName: productModel.tableName,
-    Key: { productId: id },
-  }));
-};
+
 
 const getAllProducts = async () => {
   const result = await ddbDocClient.send(new ScanCommand({
@@ -92,6 +88,24 @@ const searchProductsByName = async (queryName) => {
 };
 
 
+const deleteProduct = async (productId, sellerId) => {
+  if (!sellerId) {
+    throw new Error('Seller ID is required to delete a product');
+  }
+
+  if (!productId) {
+    throw new Error('Product ID is required to delete a product');
+  }
+
+  await ddbDocClient.send(new DeleteCommand({
+    TableName: productModel.tableName,
+    Key: { productId },
+    ConditionExpression: 'sellerId = :sellerId',
+    ExpressionAttributeValues: {
+      ':sellerId': sellerId,
+    },
+  }));
+};
 
 module.exports = {
   createProduct,
