@@ -10,8 +10,8 @@ const { authenticateSeller } = require('../middlewares/authenticateSeller');
 // 📦 Product Routes
 router.post('/create-product',authenticateSeller, upload.array('images', 5), productController.createProduct);
 router.get('/', authenticateUser, productController.getAllProducts);
-router.get('/search-products',authenticateUser, productController.searchProducts);
-router.get('/:id',authenticateUser, productController.getProductById);
+router.get('/search-products', productController.searchProducts);
+router.get('/:id', productController.getProductById);
 router.delete('/:id',authenticateSeller, productController.deleteProduct);
 router.post('/like', authenticateUser, userActionController.toggleLike);
 

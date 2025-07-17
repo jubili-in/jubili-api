@@ -26,7 +26,7 @@ const createProduct = async (data, imageUrls, sellerId) => {
     categoryId: data.categoryId,
     brand: data.brand,
     color: data.color,
-    size: data.size ? JSON.parse(data.size) : [],
+    size: data.size,
     gender: data.gender,
     material: data.material,
     productName: data.productName,
@@ -36,6 +36,7 @@ const createProduct = async (data, imageUrls, sellerId) => {
     stock: data.stock ? Number(data.stock) : 0,
     imageUrls: imageUrls,
     likeCount: 0,
+    linkedItems: data.linkedItems ? data.linkedItems.map(item => item.productId) : [],
     createdAt: new Date().toISOString(),
   });
 
