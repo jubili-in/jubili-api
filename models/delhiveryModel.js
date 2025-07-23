@@ -1,3 +1,4 @@
+// NOTE: This file is currently unused. Consider removing it or integrating it for Delhivery payload building.
 const { v4: uuidv4 } = require('uuid');
 
 function createShipmentModel(orderDetails) {

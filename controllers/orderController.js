@@ -3,7 +3,7 @@ const { PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { getProductById } = require('../services/productService');
 const { buildOrderItem } = require('../models/orderModel');
 const { generateTransactionId, buildPaymentItem } = require('../models/paymentModel');
-const { createDelhiveryShipment } = require('../services/delhiveryService');
+const { createNewShipment, schedulePickup } = require('../services/delhiveryService');
 
 const ORDERS_TABLE = 'Orders';
 const PAYMENTS_TABLE = 'Payments';
@@ -77,16 +77,33 @@ const createOrder = async (req, res) => {
             weight: calculateTotalWeight(items.map(item => ({
                 product: item.product,
                 quantity: item.quantity
-            })))
+            }))),
+            pickup_location: process.env.DELHIVERY_WAREHOUSE || 'JubiliSURFACE-B2C',
+            country: 'India',
+            // Add more fields as needed for Delhivery API
         };
 
         // Create shipping with Delhivery
-        const shipment = await createDelhiveryShipment(shippingDetails);
-    console.log('Shipping details:', shippingDetails);
+        const shipment = await createNewShipment(shippingDetails);
+        console.log('Shipping details:', shippingDetails);
+
+        // Schedule pickup after shipment creation
+        let pickupResponse = null;
+        if (shipment && shipment.awb) {
+            const pickupDetails = {
+                // You may need to adjust these fields as per Delhivery API docs
+                awb: shipment.awb,
+                expected_package_count: 1,
+                pickup_date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
+                reference_number: shippingDetails.orderId,
+                // Add more fields as needed
+            };
+            pickupResponse = await schedulePickup(pickupDetails);
+        }
 
         return res.status(201).json({
             success: true,
-            message: 'Order, payment and shipment created successfully',
+            message: 'Order, payment, shipment, and pickup created successfully',
             data: {
                 transactionId,
                 orders: orderItems,
@@ -94,7 +111,8 @@ const createOrder = async (req, res) => {
                 shipment: {
                     awb: shipment.awb ,
                     trackingUrl: shipment.trackingUrl 
-                }
+                },
+                pickup: pickupResponse
             }
         });
 
