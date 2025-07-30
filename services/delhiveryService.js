@@ -3,7 +3,6 @@ const { API_KEY, WAREHOUSE, BASE_URL } = require('../config/delhivery')
 
 // 1. Create Order (Shipment)
 
-// import qs from 'qs';
 const qs = require('qs');
 async function createNewShipment(orderDetails) {
     try {
