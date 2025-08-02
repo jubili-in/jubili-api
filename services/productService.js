@@ -1,6 +1,8 @@
 const { ddbDocClient } = require('../config/dynamoDB');
 const { v4: uuidv4 } = require('uuid');
-const { PutCommand, GetCommand, ScanCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+
+const USER_LIKE_TABLE = 'userLikedProducts';
+const { PutCommand, GetCommand, ScanCommand, DeleteCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 const productModel = require('../models/productModel');
 
 function deepClean(value) {
@@ -71,20 +73,47 @@ const getAllProducts = async () => {
 
 
 
-const searchProductsByName = async (queryName) => {
-  const result = await ddbDocClient.send(
-    new ScanCommand({ TableName: productModel.tableName })
-  );
+const searchProductsByName = async (queryName, userId = null) => {
+  try {
+    const result = await ddbDocClient.send(
+      new ScanCommand({ TableName: productModel.tableName })
+    );
 
-  const allProducts = result.Items || [];
-  const lowerQuery = queryName.toLowerCase();
+    const allProducts = result.Items || [];
+    const lowerQuery = queryName.toLowerCase();
 
-  // Case-insensitive filter
-  const filtered = allProducts.filter(prod =>
-    prod.productName && prod.productName.toLowerCase().includes(lowerQuery)
-  );
+    // Case-insensitive filter
+    const filtered = allProducts.filter(prod =>
+      prod.productName && prod.productName.toLowerCase().includes(lowerQuery)
+    );
 
-  return filtered;
+    // If no userId provided, return products without isLiked field
+    if (!userId) {
+      console.log('No userId provided, returning without isLiked');
+      return filtered;
+    }
+
+    console.log('Fetching liked products for user:', userId);
+    // Get user's liked products
+    const likedResult = await ddbDocClient.send(new QueryCommand({
+      TableName: USER_LIKE_TABLE,
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId
+      }
+    }));
+
+    const likedProductIds = new Set(likedResult.Items?.map(item => item.productId) || []);
+
+    // Add isLiked field to each product
+    return filtered.map(product => ({
+      ...product,
+      isLiked: likedProductIds.has(product.productId)
+    }));
+  } catch (error) {
+    console.error('Error in searchProductsByName:', error);
+    throw error;
+  }
 };
 
 

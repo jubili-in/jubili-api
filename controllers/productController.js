@@ -69,11 +69,13 @@ const getAllProducts = async (req, res) => {
 const searchProducts = async (req, res) => {
   try {
     const { productName } = req.query;
+    const userId = req.user?.userId; // Get userId from authenticated user
+
     if (!productName) {
       return res.status(400).json({ error: 'Missing productName in query' });
     }
     
-    const matchedProducts = await productService.searchProductsByName(productName);
+    const matchedProducts = await productService.searchProductsByName(productName, userId);
     
     const updated = await Promise.all(matchedProducts.map(async (product) => {
       if (!Array.isArray(product.imageUrls)) return product;
