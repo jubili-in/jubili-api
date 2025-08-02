@@ -1,7 +1,9 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const { ddbDocClient } = require('../config/dynamoDB');
-const { UpdateCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
+const { UpdateCommand, GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const orderService = require('../services/orderService');
+const { buildPaymentItem } = require('../models/paymentModel');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -9,31 +11,35 @@ const razorpay = new Razorpay({
 });
 
 const ORDERS_TABLE = 'Orders';
+const PAYMENTS_TABLE = 'Payments';
 
-// Create Razorpay order
-exports.createRazorpayOrder = async (req, res) => {
+const createRazorpayOrder = async (req, res) => {
   try {
-    const { amount, receipt } = req.body;
+    const { amount, receipt, orderId } = req.body;
 
-    if (!amount || !receipt) {
+    if (!amount || !receipt || !orderId) {
       return res.status(400).json({
         success: false,
-        message: "Amount and receipt ID are required"
+        message: "Amount, receipt ID and order ID are required"
       });
     }
 
     const options = {
-      amount: Math.round(amount), // amount in paise
+      amount: Math.round(amount * 100), // convert to paise
       currency: "INR",
       receipt,
-      payment_capture: 1
+      payment_capture: 1,
+      notes: {
+        orderId
+      }
     };
 
     const order = await razorpay.orders.create(options);
 
     res.status(200).json({
       success: true,
-      order
+      order,
+      key: process.env.RAZORPAY_KEY_ID
     });
 
   } catch (error) {
@@ -46,75 +52,73 @@ exports.createRazorpayOrder = async (req, res) => {
   }
 };
 
-// Verify payment
-exports.verifyPayment = async (req, res) => {
-  try {
-    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
+const verifyPayment = async (req, res) => {
+    try {
+        const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
 
-    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required parameters"
-      });
+        if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required parameters"
+            });
+        }
+
+        // Verify signature
+        const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body)
+            .digest('hex');
+
+        if (expectedSignature !== razorpay_signature) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid payment signature"
+            });
+        }
+
+        // Update order status
+        const updatedOrder = await orderService.updateOrderPaymentStatus(orderId, {
+            paymentStatus: 'paid',
+            paymentId: razorpay_payment_id,
+            paymentMethod: 'razorpay',
+            status: 'confirmed'
+        });
+
+        // Create payment record
+        const paymentItem = buildPaymentItem({
+            userId: updatedOrder.userId,
+            transactionId: updatedOrder.transactionId,
+            totalAmount: updatedOrder.totalAmount,
+            paymentMethod: 'razorpay',
+            razorpayPaymentId: razorpay_payment_id,
+            razorpayOrderId: razorpay_order_id,
+            status: 'completed'
+        });
+
+        await ddbDocClient.send(new PutCommand({
+            TableName: PAYMENTS_TABLE,
+            Item: paymentItem
+        }));
+
+        res.status(200).json({
+            success: true,
+            message: "Payment verified successfully",
+            order: updatedOrder
+        });
+
+    } catch (error) {
+        console.error("Payment verification error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Payment verification failed",
+            error: error.message
+        });
     }
-
-    // Generate expected signature
-    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(body)
-      .digest('hex');
-
-    // Verify signature
-    if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid payment signature"
-      });
-    }
-
-    // Update order status in DynamoDB
-    const params = {
-      TableName: ORDERS_TABLE,
-      Key: { orderId },
-      UpdateExpression: 'SET paymentStatus = :status, paymentId = :pid, paymentMethod = :method, paymentSignature = :sig, paymentDate = :date',
-      ExpressionAttributeValues: {
-        ':status': 'paid',
-        ':pid': razorpay_payment_id,
-        ':method': 'razorpay',
-        ':sig': razorpay_signature,
-        ':date': new Date().toISOString()
-      },
-      ReturnValues: 'ALL_NEW'
-    };
-
-    const { Attributes: updatedOrder } = await ddbDocClient.send(new UpdateCommand(params));
-
-    if (!updatedOrder) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found or update failed"
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Payment verified and order updated successfully",
-      order: updatedOrder
-    });
-
-  } catch (error) {
-    console.error("Payment verification error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Internal server error during payment verification",
-      error: error.message
-    });
-  }
 };
 
-// Get payment status
-exports.getPaymentStatus = async (req, res) => {
+
+const getPaymentStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
 
@@ -148,4 +152,47 @@ exports.getPaymentStatus = async (req, res) => {
       error: error.message
     });
   }
+};
+
+
+const handleWebhook = async (req, res) => {
+    try {
+        const webhookSignature = req.headers['x-razorpay-signature'];
+        const webhookBody = req.body;
+        
+        // Verify webhook signature
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
+            .update(JSON.stringify(webhookBody))
+            .digest('hex');
+            
+        if (expectedSignature !== webhookSignature) {
+            return res.status(400).send('Invalid signature');
+        }
+        
+        // Handle different webhook events
+        switch (webhookBody.event) {
+            case 'payment.captured':
+                // Update payment status
+                await updatePaymentStatus(webhookBody.payload.payment.entity);
+                break;
+            case 'payment.failed':
+                // Handle failed payment
+                await handleFailedPayment(webhookBody.payload.payment.entity);
+                break;
+        }
+        
+        res.status(200).send('OK');
+    } catch (error) {
+        console.error('Webhook error:', error);
+        res.status(500).send('Error processing webhook');
+    }
+}
+
+
+module.exports = {
+  verifyPayment,
+  createRazorpayOrder,
+  getPaymentStatus,
+  handleWebhook
 };

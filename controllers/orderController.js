@@ -1,131 +1,165 @@
 const { ddbDocClient } = require('../config/dynamoDB');
-const { PutCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+const { PutCommand } = require('@aws-sdk/lib-dynamodb');
+const orderService = require('../services/orderService');
+const paymentService = require('../services/paymentService');
 const { getProductById } = require('../services/productService');
-const { buildOrderItem } = require('../models/orderModel');
-const { generateTransactionId, buildPaymentItem } = require('../models/paymentModel');
-const { createNewShipment, schedulePickup } = require('../services/delhiveryService');
-
-const ORDERS_TABLE = 'Orders';
-const PAYMENTS_TABLE = 'Payments';
+const { generateTransactionId } = require('../models/paymentModel');
 
 const createOrder = async (req, res) => {
     try {
-        const { userId, address, items, paymentMethod = 'razorpay' } = req.body;
+        const { userId, address, items } = req.body;
 
-        if (!userId || !Array.isArray(items) || items.length === 0) {
+        // Validate request body
+        if (!userId) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Missing userId or items' 
+                message: 'Missing userId' 
             });
         }
 
-        const transactionId = generateTransactionId();
-        let totalAmount = 0;
-        const currentTime = new Date().toISOString();
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Items must be a non-empty array' 
+            });
+        }
 
-        // Process each product in the order
-        const orderItems = await Promise.all(items.map(async item => {
-            const product = await getProductById(item.productId, item.productCategory);
-            if (!product) {
-                throw new Error(`Product not found: ${item.productId} (${item.productCategory})`);
+        // Validate address structure
+        if (!address || typeof address !== 'object' || Array.isArray(address)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Address must be a valid object'
+            });
+        }
+
+        // Required address fields
+        const requiredAddressFields = ['street', 'city', 'state', 'pincode', 'country'];
+        const missingFields = requiredAddressFields.filter(field => !address[field]);
+        if (missingFields.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Missing required address fields: ${missingFields.join(', ')}`
+            });
+        }
+
+        // Process order items
+        let totalAmount = 0;
+        const orderItems = [];
+        
+        for (const item of items) {
+            if (!item.productId || !item.quantity) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Each item must have productId and quantity'
+                });
             }
 
-            const orderItem = buildOrderItem({
-                userId,
-                transactionId,
-                product,
-                quantity: parseInt(item.quantity),
-                address
+            const product = await getProductById(item.productId);
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: `Product not found: ${item.productId}`
+                });
+            }
+
+            // Validate product has required fields
+            if (!product.price || !product.sellerId) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Product data incomplete for: ${item.productId}`
+                });
+            }
+
+            const price = parseFloat(product.price);
+            const quantity = parseInt(item.quantity);
+            const gst = parseFloat(product.gst || 0);
+            const delivery = parseFloat(product.deliveryCharge || 0);
+            
+            if (isNaN(price) || isNaN(quantity) || quantity <= 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid price or quantity'
+                });
+            }
+
+            const subTotal = price * quantity;
+            const gstAmount = subTotal * (gst / 100);
+            const itemTotal = subTotal + gstAmount + delivery;
+            
+            totalAmount += itemTotal;
+
+            orderItems.push({
+                productId: product.productId,
+                productName: product.productName,
+                sellerId: product.sellerId,
+                price,
+                quantity,
+                gst,
+                deliveryCharge: delivery,
+                subTotal,
+                gstAmount,
+                totalAmount: itemTotal
             });
+        }
 
-            totalAmount += orderItem.totalAmount;
-
-            await ddbDocClient.send(new PutCommand({
-                TableName: ORDERS_TABLE,
-                Item: orderItem
-            }));
-
-            return orderItem;
-        }));
-
-        // Create payment entry
-        const paymentItem = buildPaymentItem({
+        // Create order in database
+        const transactionId = generateTransactionId();
+        const orderData = {
             userId,
             transactionId,
+            items: orderItems,
             totalAmount,
-            paymentMethod
-        });
-
-        await ddbDocClient.send(new PutCommand({
-            TableName: PAYMENTS_TABLE,
-            Item: paymentItem
-        }));
-
-        // Calculate total weight (simple implementation - sum of all items' weights)
-        const calculateTotalWeight = (items) => {
-            return items.reduce((total, item) => {
-                return total + (item.product?.weight || 0.5) * item.quantity;
-            }, 0);
+            address,
+            status: 'pending',
+            paymentStatus: 'unpaid',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
 
-        // Prepare shipping details using the first order item
-        const shippingDetails = {
-            orderId: orderItems[0].orderId, // Using the first order's ID
-            address: address,
-            totalAmount: totalAmount,
-            paymentMethod: paymentMethod,
-            weight: calculateTotalWeight(items.map(item => ({
-                product: item.product,
-                quantity: item.quantity
-            }))),
-            pickup_location: process.env.DELHIVERY_WAREHOUSE || 'JubiliSURFACE-B2C',
-            country: 'India',
-            // Add more fields as needed for Delhivery API
-        };
+        // Remove any undefined values before saving
+        const cleanOrderData = JSON.parse(JSON.stringify(orderData));
 
-        // Create shipping with Delhivery
-        const shipment = await createNewShipment(shippingDetails);
-        console.log('Shipping details:', shippingDetails);
-
-        // Schedule pickup after shipment creation
-        let pickupResponse = null;
-        if (shipment && shipment.awb) {
-            const pickupDetails = {
-                // You may need to adjust these fields as per Delhivery API docs
-                awb: shipment.awb,
-                expected_package_count: 1,
-                pickup_date: new Date().toISOString().slice(0, 10), // YYYY-MM-DD
-                reference_number: shippingDetails.orderId,
-                // Add more fields as needed
-            };
-            pickupResponse = await schedulePickup(pickupDetails);
-        }
-
-        return res.status(201).json({
+        const createdOrder = await orderService.createOrder(cleanOrderData);
+        
+        // Prepare response without GSI fields
+        const response = {
             success: true,
-            message: 'Order, payment, shipment, and pickup created successfully',
-            data: {
-                transactionId,
-                orders: orderItems,
-                payment: paymentItem,
-                shipment: {
-                    awb: shipment.awb ,
-                    trackingUrl: shipment.trackingUrl 
-                },
-                pickup: pickupResponse
-            }
-        });
+            message: 'Order created successfully',
+            order: {
+                orderId: createdOrder.orderId,
+                transactionId: createdOrder.transactionId,
+                userId: createdOrder.userId,
+                items: createdOrder.items.map(item => ({
+                    productId: item.productId,
+                    productName: item.productName,
+                    sellerId: item.sellerId,
+                    price: item.price,
+                    quantity: item.quantity,
+                    subTotal: item.subTotal,
+                    gstAmount: item.gstAmount,
+                    deliveryCharge: item.deliveryCharge,
+                    totalAmount: item.totalAmount
+                })),
+                totalAmount: createdOrder.totalAmount,
+                address: createdOrder.address,
+                status: createdOrder.status,
+                paymentStatus: createdOrder.paymentStatus,
+                createdAt: createdOrder.createdAt
+            },
+            transactionId: createdOrder.transactionId
+        };
+
+        res.status(201).json(response);
 
     } catch (error) {
         console.error('Order creation failed:', error);
         res.status(500).json({
             success: false,
             message: error.message || 'Failed to create order',
-            error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
         });
     }
 };
-
 
 
 // Get user orders

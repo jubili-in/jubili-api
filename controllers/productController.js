@@ -22,7 +22,10 @@ const createProduct = async (req, res) => {
 
 const getProductById = async (req, res) => {
   try {
-    const product = await productService.getProductById(req.params.id);
+    const productId = req.query.id; // Now getting from query instead of params
+    if (!productId) return res.status(400).json({ error: 'Product ID is required' });
+    
+    const product = await productService.getProductById(productId);
     if (!product) return res.status(404).json({ error: 'Not found' });
 
     if (Array.isArray(product.imageUrls)) {
@@ -33,7 +36,8 @@ const getProductById = async (req, res) => {
     }
 
     res.json(product);
-  } catch {
+  } catch (err) {
+    console.error('Error fetching product:', err);
     res.status(500).json({ error: 'Error fetching product' });
   }
 };

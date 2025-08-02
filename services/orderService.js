@@ -1,46 +1,30 @@
 const { ddbDocClient } = require('../config/dynamoDB');
-const { PutCommand, QueryCommand,ScanCommand, GetCommand, UpdateCommand} = require('@aws-sdk/lib-dynamodb');
+const { PutCommand, QueryCommand, ScanCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
-
 
 const ORDERS_TABLE = 'Orders';
 
-const generateOrderId = () => `${uuidv4().replace(/-/g, '').substring(0, 16)}`;
+const generateOrderId = () => `order_${uuidv4().replace(/-/g, '').substring(0, 12)}`;
 
 const createOrder = async (orderData) => {
   const orderId = generateOrderId();
   const currentDate = new Date().toISOString();
   
-  const subTotal = orderData.productPrice * orderData.quantity;
-  const gstAmount = subTotal * (orderData.GST / 100);
-  const totalAmount = subTotal + gstAmount + orderData.deliveryCharges + orderData.otherCharges;
-
   const orderItem = {
     PK: `ORDER#${orderId}`,
     SK: `ORDER#${orderId}`,
-    orderId: orderId,
-    transactionId: `txn_${uuidv4().replace(/-/g, '').substring(0, 12)}`,
+    orderId,
+    transactionId: orderData.transactionId,
     userId: orderData.userId,
-    sellerId: orderData.sellerId,
-    productId: orderData.productId,
-    productName: orderData.productName,
-    quantity: orderData.quantity,
-    productPrice: orderData.productPrice,
-    GST: orderData.GST,
-    deliveryCharges: orderData.deliveryCharges,
-    otherCharges: orderData.otherCharges,
-    subTotal: subTotal,
-    gstAmount: gstAmount,
-    totalAmount: totalAmount,
+    sellerId:orderData.items[0].sellerId,
+    items: orderData.items,
+    totalAmount: orderData.totalAmount,
     address: orderData.address,
-    trackingUrl: `https://www.edens.in/track/${orderId}`,
-    status: 'pending',
+    status: orderData.status,
+    paymentStatus: orderData.paymentStatus,
     createdAt: currentDate,
     updatedAt: currentDate,
-    paymentStatus: 'unpaid',
-    paymentMethod: null,
-    isActive: true,
-    version: 1
+    isActive: true
   };
 
   await ddbDocClient.send(new PutCommand({
@@ -57,31 +41,24 @@ const updateOrderPaymentStatus = async (orderId, updates) => {
     TableName: ORDERS_TABLE,
     Key: {
       PK: `ORDER#${orderId}`,
-      SK: `ORDER#${orderId}`,
+      SK: `ORDER#${orderId}`
     },
-    UpdateExpression: "SET paymentStatus = :status, paymentMethod = :method, updatedAt = :updatedAt",
+    UpdateExpression: "SET paymentStatus = :status, paymentMethod = :method, #statusAttr = :orderStatus, updatedAt = :updatedAt",
+    ExpressionAttributeNames: {
+      "#statusAttr": "status"
+    },
     ExpressionAttributeValues: {
       ":status": updates.paymentStatus,
       ":method": updates.paymentMethod,
-      ":updatedAt": new Date().toISOString(),
+      ":orderStatus": updates.status,
+      ":updatedAt": new Date().toISOString()
     },
+    ReturnValues: "ALL_NEW"
   };
 
-  await ddbDocClient.send(new UpdateCommand(params));
+  const { Attributes } = await ddbDocClient.send(new UpdateCommand(params));
+  return Attributes;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
