@@ -23,21 +23,22 @@ const allowedOrigins = [
     "https://edens-admin-ui.onrender.com",
     "http://localhost:3000",
     "http://localhost:5173",
-    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/
 ];
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(regex => regex instanceof RegExp && regex.test(origin))) {
-                callback(null, true);
-            } else {
-                callback(new Error("Not allowed by CORS"));
-            }
-        },
-        credentials: true,
-    })
-);
+// app.use(
+//     cors({
+//         origin: function (origin, callback) {
+//             if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(regex => regex instanceof RegExp && regex.test(origin))) {
+//                 callback(null, true);
+//             } else {
+//                 callback(new Error("Not allowed by CORS"));
+//             }
+//         },
+//         credentials: true,
+//     })
+// );
+
+app.use(cors());
 
 // Middleware
 app.use(express.json());
