@@ -13,32 +13,26 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const delhiveryRoutes = require('./routes/delhiveryRoutes');
-//hello
 
-// CORS Whitelist
-const allowedOrigins = [
+const cors = require("cors");
+
+// CORS config
+const corsOptions = {
+  origin: [
+    "https://jubili-web-public.onrender.com", // your frontend
     "https://www.edens.in",
     "http://www.jubili.in",
     "https://kickstart-59ea.onrender.com",
     "https://edens-admin-ui.onrender.com",
     "http://localhost:3000",
     "http://localhost:5173",
-];
+  ],
+  credentials: true, // allow cookies/auth headers
+};
 
-// app.use(
-//     cors({
-//         origin: function (origin, callback) {
-//             if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(regex => regex instanceof RegExp && regex.test(origin))) {
-//                 callback(null, true);
-//             } else {
-//                 callback(new Error("Not allowed by CORS"));
-//             }
-//         },
-//         credentials: true,
-//     })
-// );
-
-app.use(cors());
+// Enable CORS for all routes + handle preflight
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 // Middleware
 app.use(express.json());
