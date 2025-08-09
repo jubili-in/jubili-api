@@ -17,15 +17,15 @@ const delhiveryRoutes = require('./routes/delhiveryRoutes');
 // CORS config
 const corsOptions = {
   origin: [
-    "https://jubili-web-public.onrender.com", // your frontend
+    "https://jubili-web-public.onrender.com",
     "https://www.edens.in",
-    "http://www.jubili.in",
+    "https://www.jubili.in",
     "https://kickstart-59ea.onrender.com",
     "https://edens-admin-ui.onrender.com",
     "http://localhost:3000",
     "http://localhost:5173",
   ],
-  credentials: true, // allow cookies/auth headers
+  credentials: true,
 };
 
 // Enable CORS for all routes + handle preflight
