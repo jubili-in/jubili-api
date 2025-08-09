@@ -14,8 +14,6 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const delhiveryRoutes = require('./routes/delhiveryRoutes');
 
-const cors = require("cors");
-
 // CORS config
 const corsOptions = {
   origin: [
