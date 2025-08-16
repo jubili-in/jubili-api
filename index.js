@@ -17,13 +17,10 @@ const delhiveryRoutes = require('./routes/delhiveryRoutes');
 // CORS config
 const corsOptions = {
   origin: [
-    "https://jubili-web-public.onrender.com",
     "https://www.edens.in",
     "https://www.jubili.in",
-    "https://kickstart-59ea.onrender.com",
-    "https://edens-admin-ui.onrender.com",
+    "https://sellers.jubili.in",
     "http://localhost:3000",
-    "http://localhost:5173",
   ],
   credentials: true,
 };
@@ -46,7 +43,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 app.use('/api/delhivery', delhiveryRoutes);
-
+app.use('/api/address', require('./routes/addressRoute'));
 
 // Health check
 app.get("/", (req, res) => {
