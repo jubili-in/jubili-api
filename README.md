@@ -6,11 +6,7 @@
 
 ### Environment Variables
 Add these to your `.env` file:
-```
-DELHIVERY_API_KEY=1abb113f5b64247cbfdd5d212be7ffda7b39cf3f
-DELHIVERY_WAREHOUSE=JubiliSURFACE-B2C
-DELHIVERY_BASE_URL=https://staging-express.delhivery.com
-```
+
 
 ### Endpoints
 

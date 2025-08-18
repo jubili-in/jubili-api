@@ -14,7 +14,6 @@ const userActionRoutes = require("./routes/userActionRoutes");
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
-const delhiveryRoutes = require('./routes/delhiveryRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
 
 
@@ -60,13 +59,9 @@ app.use("/api/user-actions", userActionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
-app.use('/api/delhivery', delhiveryRoutes);
 app.use('/api/address', require('./routes/addressRoute'));
 app.use('/api/shipping', shippingRoutes);
 
-
-
-// Health check
 app.get("/", (req, res) => {
     res.send('🌱 Edens API is live!');
 });
