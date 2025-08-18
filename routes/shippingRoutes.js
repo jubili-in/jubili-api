@@ -1,0 +1,17 @@
+const express = require('express');
+const router = express.Router();
+const shippingController = require('../controllers/shippingController');
+
+// Shipping cost estimate
+router.post('/estimate-cost', shippingController.getShippingEstimate);
+
+// Create new shipment
+router.post('/create-shipment', shippingController.createShipment);
+
+// Track shipment by AWB
+router.get('/track/:awb', shippingController.trackShipment);
+
+// Health check endpoint
+router.get('/health', shippingController.healthCheck);
+
+module.exports = router;
