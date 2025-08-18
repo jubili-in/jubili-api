@@ -15,17 +15,23 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const delhiveryRoutes = require('./routes/delhiveryRoutes');
-const shippingRoutes = require('./routes/shippingRoutes'); // New Shiprocket routes
+const shippingRoutes = require('./routes/shippingRoutes');
 
-// CORS Whitelist
-const allowedOrigins = [
-    "https://www.edens.in",
-    "https://kickstart-59ea.onrender.com",
-    "https://edens-admin-ui.onrender.com",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}(:\d+)?$/
-];
+
+// CORS config
+const corsOptions = {
+    origin: [
+        "https://www.edens.in",
+        "https://www.jubili.in",
+        "https://sellers.jubili.in",
+        "http://localhost:3000",
+    ],
+    credentials: true,
+};
+
+// Enable CORS for all routes + handle preflight
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(
     cors({
@@ -49,14 +55,18 @@ app.use(cookieParser());
 app.use("/api/users", userRoutes);
 app.use("/api/sellers", sellerRoutes);
 app.use("/api/products", productRoutes);
+// includes /categories under this
 app.use("/api/user-actions", userActionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 app.use('/api/delhivery', delhiveryRoutes);
+app.use('/api/address', require('./routes/addressRoute'));
 app.use('/api/shipping', shippingRoutes);
 
 
+
+// Health check
 app.get("/", (req, res) => {
     res.send('🌱 Edens API is live!');
 });
@@ -73,7 +83,7 @@ const initializeServices = async () => {
     }
 };
 
-
+// Start server
 const port = process.env.PORT || 8000;
 app.listen(port, async () => {
     const currentTime = new Date().toLocaleString();
