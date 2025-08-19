@@ -4,7 +4,8 @@ require("dotenv").config();
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 
-const { initializeShiprocket } = require('./services/shiprocketService');
+const { initializeShiprocket } = require('./services/shiprocketService.js');
+const { initializeEkart } = require('./services/ekartService');
 
 // Routes
 const userRoutes = require("./routes/userRoute");
@@ -15,7 +16,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const shippingRoutes = require('./routes/shippingRoutes');
-
+const ekartRoutes = require('./routes/ekartRoutes');
 
 // CORS config
 const corsOptions = {
@@ -60,21 +61,36 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 app.use('/api/address', require('./routes/addressRoute'));
-app.use('/api/shipping', shippingRoutes);
+app.use('/api/shipping', shippingRoutes); // Shiprocket routes
+app.use('/api/ekart', ekartRoutes); // Ekart routes
 
 app.get("/", (req, res) => {
     res.send('🌱 Edens API is live!');
 });
 
-// Shiprocket server start
+// Initialize external services
 const initializeServices = async () => {
     try {
         console.log('🚀 Initializing external services...');
-        await initializeShiprocket();
-        console.log('✅ All services initialized successfully');
+        
+        // Initialize both shipping services in parallel
+        await Promise.allSettled([
+            // initializeShiprocket(),
+            initializeEkart()
+        ]).then(results => {
+            results.forEach((result, index) => {
+                const serviceName = index === 0 ? 'Shiprocket' : 'Ekart';
+                if (result.status === 'fulfilled') {
+                    console.log(`✅ ${serviceName} initialized successfully`);
+                } else {
+                    console.error(`❌ ${serviceName} initialization failed:`, result.reason?.message);
+                }
+            });
+        });
+        
+        console.log('✅ Service initialization process completed');
     } catch (error) {
         console.error('❌ Service initialization failed:', error.message);
-
     }
 };
 

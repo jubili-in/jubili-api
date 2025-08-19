@@ -1,4 +1,4 @@
-const shiprocketService = require('../services/shiprocketService');
+const shiprocketService = require('../services/shiprocketService.js');
 
 /**
  * Get shipping cost estimate from Shiprocket
