@@ -21,7 +21,7 @@ const ekartRoutes = require('./routes/ekartRoutes');
 // CORS config
 const corsOptions = {
     origin: [
-        "https://www.edens.in",
+        "https://sellers.jubili.in",
         "https://www.jubili.in",
         "https://sellers.jubili.in",
         "http://localhost:3000",
@@ -31,20 +31,20 @@ const corsOptions = {
 
 // Enable CORS for all routes + handle preflight
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+// app.options("*", cors(corsOptions));
 
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(regex => regex instanceof RegExp && regex.test(origin))) {
-                callback(null, true);
-            } else {
-                callback(new Error("Not allowed by CORS"));
-            }
-        },
-        credentials: true,
-    })
-);
+// app.use(
+//     cors({
+//         origin: function (origin, callback) {
+//             if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(regex => regex instanceof RegExp && regex.test(origin))) {
+//                 callback(null, true);
+//             } else {
+//                 callback(new Error("Not allowed by CORS"));
+//             }
+//         },
+//         credentials: true,
+//     })
+// );
 
 // Middleware
 app.use(express.json());
@@ -65,7 +65,7 @@ app.use('/api/shipping', shippingRoutes); // Shiprocket routes
 app.use('/api/ekart', ekartRoutes); // Ekart routes
 
 app.get("/", (req, res) => {
-    res.send('🌱 Edens API is live!');
+    res.send('🌱 Jubili API is live!');
 });
 
 // Initialize external services
