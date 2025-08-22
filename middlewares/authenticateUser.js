@@ -5,7 +5,7 @@ const authenticateUser = (req, res, next) => {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized. Please log in to like products.' });
+    return res.status(401).json({ error: 'Unauthorized.' });
   }
 
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {

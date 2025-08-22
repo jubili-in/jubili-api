@@ -1,10 +1,9 @@
 const express = require("express");
 const app = express();
-require("dotenv").config();
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
+require("dotenv").config();
 
-const { initializeShiprocket } = require('./services/shiprocketService.js');
 const { initializeEkart } = require('./services/ekartService');
 
 // Routes
@@ -15,36 +14,31 @@ const userActionRoutes = require("./routes/userActionRoutes");
 const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
-const shippingRoutes = require('./routes/shippingRoutes');
+const addressRoute = require('./routes/addressRoute');
 const ekartRoutes = require('./routes/ekartRoutes');
 
 // CORS config
 const corsOptions = {
-    origin: [
+  origin: (origin, callback) => {
+    if (
+      [
         "https://sellers.jubili.in",
         "https://www.jubili.in",
-        "https://sellers.jubili.in",
         "http://localhost:3000",
-    ],
-    credentials: true,
+      ].includes(origin) ||
+      /^http:\/\/172\.\d{1,3}\.\d{1,3}\.\d{1,3}:3000$/.test(origin) || // allow 172.x.x.x:3000
+      /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:3000$/.test(origin)        // allow 192.168.x.x:3000
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
 };
 
-// Enable CORS for all routes + handle preflight
-app.use(cors(corsOptions));
-// app.options("*", cors(corsOptions));
 
-// app.use(
-//     cors({
-//         origin: function (origin, callback) {
-//             if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some(regex => regex instanceof RegExp && regex.test(origin))) {
-//                 callback(null, true);
-//             } else {
-//                 callback(new Error("Not allowed by CORS"));
-//             }
-//         },
-//         credentials: true,
-//     })
-// );
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(express.json());
@@ -60,9 +54,8 @@ app.use("/api/user-actions", userActionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
-app.use('/api/address', require('./routes/addressRoute'));
-app.use('/api/shipping', shippingRoutes); // Shiprocket routes
-app.use('/api/ekart', ekartRoutes); // Ekart routes
+app.use('/api/address', addressRoute);
+app.use('/api/ekart', ekartRoutes);
 
 app.get("/", (req, res) => {
     res.send('🌱 Jubili API is live!');
@@ -72,27 +65,16 @@ app.get("/", (req, res) => {
 const initializeServices = async () => {
     try {
         console.log('🚀 Initializing external services...');
-        
-        // Initialize both shipping services in parallel
-        await Promise.allSettled([
-            // initializeShiprocket(),
-            initializeEkart()
-        ]).then(results => {
-            results.forEach((result, index) => {
-                const serviceName = index === 0 ? 'Shiprocket' : 'Ekart';
-                if (result.status === 'fulfilled') {
-                    console.log(`✅ ${serviceName} initialized successfully`);
-                } else {
-                    console.error(`❌ ${serviceName} initialization failed:`, result.reason?.message);
-                }
-            });
-        });
-        
+
+        await initializeEkart();
+        console.log('✅ Ekart initialized successfully');
+
         console.log('✅ Service initialization process completed');
     } catch (error) {
-        console.error('❌ Service initialization failed:', error.message);
+        console.error('❌ Ekart initialization failed:', error.message);
     }
 };
+
 
 // Start server
 const port = process.env.PORT || 8000;

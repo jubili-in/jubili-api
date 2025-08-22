@@ -30,8 +30,6 @@ const authenticateEkart = async () => {
             }
         });
 
-        console.log(`🚚 📦 Ekart authentication response:`, response.data);
-
         if (!response.data || !response.data.access_token) {
             throw new Error('Invalid response from Ekart auth API');
         }
