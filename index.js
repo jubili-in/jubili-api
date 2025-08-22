@@ -19,24 +19,15 @@ const ekartRoutes = require('./routes/ekartRoutes');
 
 // CORS config
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (
-      [
+    origin: [
         "https://sellers.jubili.in",
         "https://www.jubili.in",
+        "https://sellers.jubili.in",
         "http://localhost:3000",
-      ].includes(origin) ||
-      /^http:\/\/172\.\d{1,3}\.\d{1,3}\.\d{1,3}:3000$/.test(origin) || // allow 172.x.x.x:3000
-      /^http:\/\/192\.168\.\d{1,3}\.\d{1,3}:3000$/.test(origin)        // allow 192.168.x.x:3000
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
+        "http://172.20.13.54:3000",
+    ],
+    credentials: true,
 };
-
 
 app.use(cors(corsOptions));
 
