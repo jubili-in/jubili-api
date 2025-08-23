@@ -25,7 +25,11 @@ const getProductById = async (req, res) => {
     const productId = req.query.id; // Now getting from query instead of params
     if (!productId) return res.status(400).json({ error: 'Product ID is required' });
     
-    const product = await productService.getProductById(productId);
+    // Get userId from authenticated user (if available)
+    const userId = req.user?.userId;
+    
+    // Use the new function that can add isLiked status
+    const product = await productService.getProductByIdWithLikeStatus(productId, userId);
     if (!product) return res.status(404).json({ error: 'Not found' });
 
     if (Array.isArray(product.imageUrls)) {

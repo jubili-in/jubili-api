@@ -62,6 +62,32 @@ const getProductById = async (id) => {
   return result.Item || null;
 };
 
+const getProductByIdWithLikeStatus = async (id, userId = null) => {
+  const product = await getProductById(id);
+  
+  // If no product found or no userId provided, return product as is
+  if (!product || !userId) {
+    return product;
+  }
+  
+  // Get user's liked products
+  const likedResult = await ddbDocClient.send(new QueryCommand({
+    TableName: USER_LIKE_TABLE,
+    KeyConditionExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': userId
+    }
+  }));
+  
+  const likedProductIds = new Set(likedResult.Items?.map(item => item.productId) || []);
+  
+  // Add isLiked field to product
+  return {
+    ...product,
+    isLiked: likedProductIds.has(product.productId)
+  };
+};
+
 
 
 const getAllProducts = async () => {
@@ -139,6 +165,7 @@ const deleteProduct = async (productId, sellerId) => {
 module.exports = {
   createProduct,
   getProductById,
+  getProductByIdWithLikeStatus,
   deleteProduct,
   getAllProducts,
   searchProductsByName,
