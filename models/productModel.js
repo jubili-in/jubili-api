@@ -16,9 +16,14 @@ module.exports = {
     price: 'number',
     discount: 'number',
     stock: 'number',
+    height: 'number',
+    width: 'number', 
+    length: 'number',
+    weight: 'number', 
+    addressId: 'string',
     imageUrls: 'list',
     likeCount: 'number',
-    createdAt: 'string',
     linkedItems: 'list',
+    createdAt: 'string',
   }
 };

@@ -1,9 +1,12 @@
 // services/addressService.js
-const { DynamoDBClient, PutItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, PutItemCommand, QueryCommand  } = require('@aws-sdk/client-dynamodb');
+
+// const {ddbDocClient} = require('../config/dynamoDB'); 
 const { v4: uuidv4 } = require('uuid');
 
+
 const dynamoClient = new DynamoDBClient({ region: 'ap-south-1' }); // Change region if needed
-const TABLE_NAME = 'Addresses';
+const addressModel = require('../models/addressModel'); 
 
 const createAddress = async (data) => {
     const {
@@ -60,6 +63,69 @@ const createAddress = async (data) => {
     return { addressId, createdAt: timestamp };
 };
 
+
+// Get address from addressId (query GSI)
+const getAddress = async (addressId) => {
+    const params = {
+        TableName: addressModel.tableName,
+        IndexName: 'AddressIdIndex',
+        KeyConditionExpression: 'addressId = :addressId',
+        ExpressionAttributeValues: {
+            ':addressId': { S: addressId }
+        }
+    };
+
+    try {
+        const result = await dynamoClient.send(new QueryCommand(params));
+        
+        if (!result.Items || result.Items.length === 0) {
+            throw new Error('Address not found');
+        }
+
+        const item = result.Items[0]; // Should only be one item since addressId is unique
+        
+        // Convert DynamoDB format to regular object
+        return {
+            postalCode: item.postalCode.S,
+        };
+    } catch (error) {
+        console.error('Error getting address by addressId:', error);
+        throw error;
+    }
+};
+
+
+
+const getAddressUserId = async(ownerId) => { 
+    const params = {
+        TableName: addressModel.tableName,
+        KeyConditionExpression: 'ownerId = :ownerId',
+        ExpressionAttributeValues: {
+            ':ownerId': { S: ownerId }
+        }
+    };
+
+    try {
+        const result = await dynamoClient.send(new QueryCommand(params));
+        
+        if (!result.Items || result.Items.length === 0) {
+            throw new Error('Address not found');
+        }
+
+        const item = result.Items[0]; // Should only be one item since addressId is unique
+        
+        // Convert DynamoDB format to regular object
+        return {
+            postalCode: item.postalCode.S,
+        };
+    } catch (error) {
+        console.error('Error getting address by addressId:', error);
+        throw error;
+    }
+}
+
 module.exports = {
-    createAddress
+    createAddress,
+    getAddress, 
+    getAddressUserId
 };

@@ -1,5 +1,9 @@
 // controllers/ekartController.js
 const ekartService = require('../services/ekartService');
+const productService = require('../services/productService'); 
+const addressService = require('../services/addressService'); 
+const axios = require('axios'); 
+const {getValidEkartToken} = require('../services/ekartService'); 
 
 /**
  * Get shipping cost estimate from Ekart
@@ -14,78 +18,68 @@ const ekartService = require('../services/ekartService');
  * }
  */
 const getEkartShippingEstimate = async (req, res) => {
+    // reuquired fields: 
+    // pickupPincode, dropPincode, weight, length, height,width, serviceType (Enum: "SURFACE" "EXPRESS"), invoiceAmount, 
+    // id => products
+    // https://app.elite.ekartlogistics.in/data/pricing/estimate
     try {
-        const { origin_pincode, destination_pincode, weight, mode } = req.body;
+        // request body
+        const {productPrice, productWidth, productLength, productWeight, productHeight, addressId, userId} = req.body; 
 
-        // Validate required fields
-        if (!origin_pincode || !destination_pincode) {
-            return res.status(400).json({
-                success: false,
-                message: 'origin_pincode and destination_pincode are required'
-            });
+      
+
+        // pickup address
+        const pickupaddress = await addressService.getAddress(addressId); 
+        if(!pickupaddress) { 
+            return res.status(404).json({message: "Pickup location not found"}); 
         }
 
-        // Validate postcode format (6 digits)
-        const postcodeRegex = /^\d{6}$/;
-        if (!postcodeRegex.test(origin_pincode) || !postcodeRegex.test(destination_pincode)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Postcodes must be 6-digit numbers'
-            });
+
+        // dropout address
+        const dropoutAddress = await addressService.getAddressUserId(userId); 
+        if(!dropoutAddress) { 
+            return res.status(404).json({message: "Drop location is not found"}); 
         }
 
-        // Set defaults and validate
-        const estimateParams = {
-            origin_pincode,
-            destination_pincode,
-            weight: weight ? parseFloat(weight) : 0.5, // Default weight 0.5kg
-            mode: mode || 'Surface' // Default to Surface mode
-        };
 
-        // Validate weight
-        if (estimateParams.weight <= 0 || estimateParams.weight > 50) {
-            return res.status(400).json({
-                success: false,
-                message: 'weight must be between 0.1 and 50 kg'
-            });
+        // ekart payload
+        const ekartPayload = { 
+            pickupPincode: pickupaddress.postalCode, 
+            dropPincode: dropoutAddress.postalCode,
+            weight: productWeight, 
+            length: productLength, 
+            width: productWidth, 
+            height: productHeight,
+            serviceType: "SURFACE",
+            shippingDirection: "FORWARD",
+            codAmount: 0,
+            invoiceAmount: productPrice
         }
 
-        // Validate mode
-        if (!['Surface', 'Air'].includes(estimateParams.mode)) {
-            return res.status(400).json({
-                success: false,
-                message: 'mode must be either "Surface" or "Air"'
-            });
-        }
+        // console.log(ekartPayload); 
 
-        console.log('🚚 📦 Processing Ekart shipping estimate request:', estimateParams);
+       const token =  await getValidEkartToken(); 
+        // console.log(token); 
+        // ekart api call 
+          const ekartResponse = await axios.post('https://app.elite.ekartlogistics.in/data/pricing/estimate', ekartPayload, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }); 
 
-        const result = await ekartService.getEkartShippingEstimate(estimateParams);
+        // const ekartData = ekartR
 
-        if (!result.success) {
-            return res.status(502).json({
-                success: false,
-                message: 'Failed to get shipping estimate from Ekart',
-                error: result.error,
-                details: result.details
-            });
-        }
-
-        // Process and format the response
-        const estimateData = result.data;
-
-        return res.status(200).json({
-            success: true,
-            message: 'Ekart shipping estimate retrieved successfully',
-            request_params: estimateParams,
-            data: estimateData
-        });
+        return res.status(200).json({ 
+            message: "Ekart shipping estimate request received",
+            data:{
+                
+                pickupaddress, 
+                dropoutAddress, 
+                ekartResponse : ekartResponse.data
+            }
+        })
 
     } catch (error) {
-        console.error('🚚 ❌ Error in getEkartShippingEstimate controller:', error);
+        // console.error('🚚 ❌ Error in getEkartShippingEstimate controller:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error while getting Ekart shipping estimate',
+            message: error.message,
             error: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
         });
     }
