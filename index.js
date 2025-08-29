@@ -16,6 +16,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const addressRoute = require('./routes/addressRoute');
 const ekartRoutes = require('./routes/ekartRoutes');
+const testRoute = require('./routes/testRoute');
 
 // CORS config
 const corsOptions = {
@@ -47,6 +48,8 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/webhook", webhookRoutes);
 app.use('/api/address', addressRoute);
 app.use('/api/ekart', ekartRoutes);
+
+app.use('/api/v1/testToken', testRoute )
 
 app.get("/", (req, res) => {
     res.send('🌱 Jubili API is live!');

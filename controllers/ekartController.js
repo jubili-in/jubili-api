@@ -26,21 +26,17 @@ const getEkartShippingEstimate = async (req, res) => {
         // request body
         const {productPrice, productWidth, productLength, productWeight, productHeight, addressId, userId} = req.body; 
 
-      
-
         // pickup address
         const pickupaddress = await addressService.getAddress(addressId); 
         if(!pickupaddress) { 
             return res.status(404).json({message: "Pickup location not found"}); 
         }
 
-
         // dropout address
         const dropoutAddress = await addressService.getAddressUserId(userId); 
         if(!dropoutAddress) { 
             return res.status(404).json({message: "Drop location is not found"}); 
         }
-
 
         // ekart payload
         const ekartPayload = { 
@@ -56,19 +52,13 @@ const getEkartShippingEstimate = async (req, res) => {
             invoiceAmount: productPrice
         }
 
-        // console.log(ekartPayload); 
-
        const token =  await getValidEkartToken(); 
-        // console.log(token); 
         // ekart api call 
           const ekartResponse = await axios.post('https://app.elite.ekartlogistics.in/data/pricing/estimate', ekartPayload, { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } }); 
-
         // const ekartData = ekartR
-
         return res.status(200).json({ 
             message: "Ekart shipping estimate request received",
             data:{
-                
                 pickupaddress, 
                 dropoutAddress, 
                 ekartResponse : ekartResponse.data

@@ -11,7 +11,7 @@ const addressModel = require('../models/addressModel');
 const createAddress = async (data) => {
     const {
         ownerId,
-        ownerType, // 'USER' or 'SELLER'
+        ownerType,// 'USER' or 'SELLER'
         addressType, // HOME, WORK, WAREHOUSE.
         name,
         phoneNumber,
