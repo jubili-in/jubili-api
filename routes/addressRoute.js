@@ -17,7 +17,13 @@ router.get('/my-addresses', getUserFromToken, addressController.getAddresses);
 // Get specific address by ID
 router.get('/:addressId', getUserFromToken, addressController.getAddressById);
 
-// Legacy route for backward compatibility
-router.post('/create-address', getUserFromToken, addressController.createAddress);
+// Update address
+router.put('/update/:addressId', getUserFromToken, addressController.updateAddress);
+
+// Delete address
+router.delete('/delete/:addressId', getUserFromToken, addressController.deleteAddress);
+
+// Set default address
+router.patch('/set-default/:addressId', getUserFromToken, addressController.setDefaultAddress);
 
 module.exports = router;
