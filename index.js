@@ -19,6 +19,7 @@ const webhookRoutes = require('./routes/webhookRoutes');
 const addressRoute = require('./routes/addressRoute');
 const ekartRoutes = require('./routes/ekartRoutes');
 const testRoute = require('./routes/testRoute');
+const sseRoutes = require('./routes/sseRoutes'); 
 
 // CORS config
 const corsOptions = {
@@ -57,6 +58,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/address', addressRoute);
 app.use('/api/ekart', ekartRoutes);
+app.use('/api/sse', sseRoutes); 
 
 app.use('/api/v1/testToken', testRoute )
 
