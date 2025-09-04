@@ -3,6 +3,8 @@ const app = express();
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const crypto = require('crypto'); 
+const bodyParser = require('body-parser'); 
 
 const { initializeEkart } = require('./services/ekartService');
 
@@ -32,6 +34,14 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+
+// IMPORTANT: Webhook route MUST be defined BEFORE express.json() middleware
+// This is because we need access to the raw body for signature verification
+
+
+//webhooks must always be on top of the call stack
+app.use("/api/webhooks", webhookRoutes);
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -45,15 +55,20 @@ app.use("/api/products", productRoutes);
 app.use("/api/user-actions", userActionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
-app.use("/api/webhook", webhookRoutes);
 app.use('/api/address', addressRoute);
 app.use('/api/ekart', ekartRoutes);
 
 app.use('/api/v1/testToken', testRoute )
 
+
 app.get("/", (req, res) => {
     res.send('🌱 Jubili API is live!');
 });
+
+
+
+
+
 
 // Initialize external services
 const initializeServices = async () => {
@@ -71,7 +86,7 @@ const initializeServices = async () => {
 
 
 // Start server
-const port = process.env.PORT || 8000;
+const port =  8080;
 app.listen(port, async () => {
     const currentTime = new Date().toLocaleString();
     console.log(`🚀 Server running at http://localhost:${port}`);

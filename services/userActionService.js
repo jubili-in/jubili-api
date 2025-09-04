@@ -139,8 +139,8 @@ const getCartWithProducts = async (userId) => {
     if (!cartItems.length) {
       return { 
         items: [], 
-        totalOriginalPrice: 0, 
-        totalDiscount: 0, 
+        totalOriginalPrice: 0,  //initial price
+        totalCurrentPrice: 0, //current price
         subtotal: 0, 
         shippingCharge: 0, 
         finalTotal: 0,
@@ -176,8 +176,8 @@ const getCartWithProducts = async (userId) => {
     }
 
     // Process cart items and calculate totals
-    let totalOriginalPrice = 0;
-    let totalDiscount = 0;
+    let totalOriginalPrice = 0; // initial price
+    let totalCurrentPrice = 0; // current price
     const items = [];
 
     for (const cartItem of cartItems) {
@@ -189,20 +189,21 @@ const getCartWithProducts = async (userId) => {
       const price = Number(product.price) || 0;
       
       // Calculate discount (use product discount or 0 if not set)
-      const discountOnProduct = Number(product.discount) || 0;
+      const currentPrice = Number(product.currentPrice) || 0;
       
       // Calculate per-unit discount and discounted price
-      const discountAmountPerUnit = Number((price * discountOnProduct / 100).toFixed(2));
-      const discountedPricePerUnit = Number((price - discountAmountPerUnit).toFixed(2));
+      // const discountAmountPerUnit = Number((price * discountOnProduct / 100).toFixed(2));
+      // const discountedPricePerUnit = Number((price - discountAmountPerUnit).toFixed(2));
       
       // Calculate totals for this item
       const itemOriginalPrice = price * quantity;
-      const itemDiscount = discountAmountPerUnit * quantity;
-      const itemDiscountedPrice = discountedPricePerUnit * quantity;
+      // const itemDiscount = discountAmountPerUnit * quantity;
+      // const itemDiscountedPrice = discountedPricePerUnit * quantity;
+      const itemCurrentPrice = currentPrice * quantity; 
 
       // Update cart totals
       totalOriginalPrice += itemOriginalPrice;
-      totalDiscount += itemDiscount;
+      totalCurrentPrice += itemCurrentPrice;
 
       // Generate image URL
       let imageUrl = null;
@@ -216,26 +217,21 @@ const getCartWithProducts = async (userId) => {
         productId: product.productId,
         productName: product.productName,
         imageUrl,
-        color: product.color,
-        size: product.size,
-        gender: product.gender,
-        material: product.material,
         brand: product.brand,
         sellerId: product.sellerId,
         sellerName: seller?.sellerName,
         price,
-        discountOnProduct,
-        discountAmount: discountAmountPerUnit,
+        currentPrice,
         quantity,
         // discountedPrice: discountedPricePerUnit, // This is per unit price
-        totalDiscountedPrice: itemDiscountedPrice, // Added total for the quantity
+        totalCurrentPrice: itemCurrentPrice, // Added total for the quantity
         productCategory: product.productCategory,
         description: product.description
       });
     }
 
     // Calculate final totals
-    const subtotal = totalOriginalPrice - totalDiscount;
+    const subtotal = totalOriginalPrice
     const shippingCharge = subtotal < 2399 && subtotal > 0 ? 49 : 0;
     const finalTotal = subtotal + shippingCharge;
 
@@ -243,7 +239,7 @@ const getCartWithProducts = async (userId) => {
       totalItems: items.length,
       items,
       totalOriginalPrice: parseFloat(totalOriginalPrice.toFixed(2)),
-      totalDiscount: parseFloat(totalDiscount.toFixed(2)),
+      totalCurrentPrice: parseFloat(totalCurrentPrice.toFixed(2)),
       subtotal: parseFloat(subtotal.toFixed(2)),
       shippingCharge,
       finalTotal: parseFloat(finalTotal.toFixed(2)),

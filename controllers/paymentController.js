@@ -15,9 +15,9 @@ const PAYMENTS_TABLE = 'Payments';
 
 const createRazorpayOrder = async (req, res) => {
   try {
-    const { amount, receipt, orderId } = req.body;
+    const { amount, receipt, orderId, items } = req.body;
 
-    if (!amount || !receipt || !orderId) {
+    if (!amount || !receipt || !orderId || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Amount, receipt ID and order ID are required"
@@ -30,7 +30,8 @@ const createRazorpayOrder = async (req, res) => {
       receipt,
       payment_capture: 1,
       notes: {
-        orderId
+        orderId, 
+        items: JSON.stringify(items)
       }
     };
 
