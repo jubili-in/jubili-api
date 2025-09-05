@@ -16,7 +16,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const addressRoute = require('./routes/addressRoute');
 const ekartRoutes = require('./routes/ekartRoutes');
-const testRoute = require('./routes/testRoute');
+// const testRoute = require('./routes/testRoute');
 
 // CORS config
 const corsOptions = {
