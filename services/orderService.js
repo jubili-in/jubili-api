@@ -7,13 +7,15 @@ const ORDERS_TABLE = 'Orders';
 const generateOrderId = () => `order_${uuidv4().replace(/-/g, '').substring(0, 12)}`;
 
 const createOrder = async (orderData) => {
-  const orderId = generateOrderId();
+  console.log("Called");
+  // const orderId = 
+  console.log("Generated Order ID:", orderData.orderId);
   const currentDate = new Date().toISOString();
-  
+
   const orderItem = {
-    PK: `ORDER#${orderId}`,
-    SK: `ORDER#${orderId}`,
-    orderId,
+    PK: `ORDER#${orderData.orderId}`,
+    SK: `ORDER#${orderData.orderId}`,
+    orderId: orderData.orderId,
     transactionId: orderData.transactionId,
     userId: orderData.userId,
     sellerId:orderData.items[0].sellerId,
@@ -26,6 +28,12 @@ const createOrder = async (orderData) => {
     updatedAt: currentDate,
     isActive: true
   };
+
+//   console.log("Creating order in DB:", {
+//    PK: `ORDER#${orderId}`,
+//     SK: `ORDER#${orderId}`,
+//   ...orderItem
+// });
 
   await ddbDocClient.send(new PutCommand({
     TableName: ORDERS_TABLE,

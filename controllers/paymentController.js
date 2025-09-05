@@ -59,6 +59,8 @@ const verifyPayment = async (req, res) => {
     try {
         const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
 
+        console.log(orderId, "from verify"); 
+
         if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
             return res.status(400).json({
                 success: false,

@@ -54,13 +54,15 @@ async function handleRazorpayWebhook(req, res) {
       return res.status(200).send(`Ignored event: ${eventType}`);
     }
     // console.log("Event payload:", eventData);
-    console.log(eventData)
+    // const paymentData = eventData.payload?.payment?.entity;
+    // console.log("Payment payload:", paymentData);
+    // console.log(eventData)
 
     if (eventType === 'payment.captured') {
       const paymentData = eventData.payload?.payment?.entity;
       const razorpayOrderData = eventData.payload?.order?.entity;
       const userId = eventData.payload?.payment?.entity?.notes?.userId;
-      console.log("Payment payload:", paymentData);
+      // console.log("Payment payload:", paymentData);
       // console.log("Order payload:", razorpayOrderData);
       // Notify frontend order creation started
       sseController.sendOrderEvent(userId, { type: "ORDER_CREATING" });
@@ -70,6 +72,7 @@ async function handleRazorpayWebhook(req, res) {
 
       // Prepare orderData for your createOrder service
       const orderData = {
+        orderId: paymentData.order_id, 
         userId,
         transactionId: paymentData.id,
         items: JSON.parse(paymentData.notes.items),

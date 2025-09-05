@@ -5,7 +5,7 @@ const { authenticateSeller } = require('../middlewares/authenticateSeller');
 const orderController = require('../controllers/orderController');
 
 // User routes
-router.post('/create', orderController.createOrder);
+// router.post('/create', orderController.createOrder);
 router.get('/user/:userId', authenticateUser, orderController.getUserOrders);
 router.patch('/cancel/:orderId', authenticateUser, orderController.cancelUserOrder);
 
