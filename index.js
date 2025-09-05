@@ -3,10 +3,8 @@ const app = express();
 const cors = require('cors');
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
-const crypto = require('crypto'); 
-const bodyParser = require('body-parser'); 
-
-const { initializeEkart } = require('./services/ekartService');
+const crypto = require('crypto');
+const bodyParser = require('body-parser');
 
 // Routes
 const userRoutes = require("./routes/userRoute");
@@ -17,8 +15,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const addressRoute = require('./routes/addressRoute');
-const ekartRoutes = require('./routes/ekartRoutes');
-const testRoute = require('./routes/testRoute');
+// const ekartRoutes = require('./routes/ekartRoutes');
 
 // CORS config
 const corsOptions = {
@@ -56,9 +53,9 @@ app.use("/api/user-actions", userActionRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/address', addressRoute);
-app.use('/api/ekart', ekartRoutes);
+// app.use('/api/ekart', ekartRoutes);
 
-app.use('/api/v1/testToken', testRoute )
+// app.use('/api/v1/testToken', testRoute )
 
 
 app.get("/", (req, res) => {
@@ -71,27 +68,27 @@ app.get("/", (req, res) => {
 
 
 // Initialize external services
-const initializeServices = async () => {
-    try {
-        console.log('🚀 Initializing external services...');
+// const initializeServices = async () => {
+//     try {
+//         console.log('🚀 Initializing external services...');
 
-        await initializeEkart();
-        console.log('✅ Ekart initialized successfully');
+//         await initializeEkart();
+//         console.log('✅ Ekart initialized successfully');
 
-        console.log('✅ Service initialization process completed');
-    } catch (error) {
-        console.error('❌ Ekart initialization failed:', error.message);
-    }
-};
+//         console.log('✅ Service initialization process completed');
+//     } catch (error) {
+//         console.error('❌ Ekart initialization failed:', error.message);
+//     }
+// };
 
 
 // Start server
-const port =  8080;
+const port = process.env.PORT || 8000;
 app.listen(port, async () => {
     const currentTime = new Date().toLocaleString();
     console.log(`🚀 Server running at http://localhost:${port}`);
     console.log(`🕒 Started at ${currentTime}`);
 
     // Initialize services after server starts
-    await initializeServices();
+    // await initializeServices();
 });
