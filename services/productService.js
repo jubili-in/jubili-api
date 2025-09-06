@@ -22,6 +22,13 @@ function clean(item) {
 }
 
 const createProduct = async (data, imageUrls, sellerId) => {
+  // Handle dimensions object creation
+  const dimensions = {};
+  if (data.height) dimensions.height = Number(data.height);
+  if (data.breadth) dimensions.breadth = Number(data.breadth);
+  if (data.length) dimensions.length = Number(data.length);
+  if (data.weight) dimensions.weight = Number(data.weight);
+
   const item = clean({
     productId: uuidv4(),
     sellerId,
@@ -34,10 +41,7 @@ const createProduct = async (data, imageUrls, sellerId) => {
     price: data.price ? Number(data.price) : 0,
     currentPrice: data.currentPrice ? Number(data.currentPrice) : 0, 
     stock: data.stock ? Number(data.stock) : 0,
-    height: data.height ? Number(data.height) : 0,
-    width: data.width ? Number(data.width) : 0,
-    length: data.length ? Number(data.length) : 0,
-    weight: data.weight ? Number(data.weight) : 0,
+    dimensions: Object.keys(dimensions).length > 0 ? dimensions : {},
     addressId: data.addressId,
     imageUrls: imageUrls || [],
     likeCount: 0,

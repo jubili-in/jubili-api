@@ -38,7 +38,7 @@ function buildOrderItem({ userId, transactionId, product, quantity, address }) {
             awb: null,
             trackingUrl: null,
             status: 'pending',
-            weight: product.weight || 0.5
+            weight: product.dimensions?.weight || product.weight || 0.5
         },
         createdAt: currentTime,
         updatedAt: currentTime,

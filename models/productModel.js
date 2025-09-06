@@ -14,10 +14,7 @@ module.exports = {
     price: 'number',
     currentPrice: 'number',
     stock: 'number',
-    height: 'number',
-    width: 'number', 
-    length: 'number',
-    weight: 'number', 
+    dimensions: { type: 'map', optional: true }, // { height, breadth, length, weight }
     addressId: 'string',
     imageUrls: 'list',
     likeCount: 'number',
