@@ -9,6 +9,11 @@ const USER_LIKE_TABLE = 'userLikedProducts';
 const PRODUCT_TABLE = 'products';
 const SELLER_TABLE = 'sellers';
 
+// Platform charge constants
+const PLATFORM_CHARGE_PER_PRODUCT = 12; // ₹12 per product
+const GST_RATE = 0.18; // 18% GST
+const PLATFORM_CHARGE_WITH_GST = PLATFORM_CHARGE_PER_PRODUCT * (1 + GST_RATE); // ₹14.16 per product
+
 /**
  * Save a user action (e.g., add to cart, favorite).
  */
@@ -126,23 +131,20 @@ const handleToggleLike = async (userId, productId) => {
   }
 };
 
-
-
-
 /**
- * Get the user's cart with product details.
+ * Get the user's cart with product details, flat delivery charges and platform charges.
  */
-
 const getCartWithProducts = async (userId) => {
   try {
     const cartItems = await getUserActions({ userId, actionType: 'CART' });
     if (!cartItems.length) {
       return { 
         items: [], 
-        totalOriginalPrice: 0,  //initial price
-        totalCurrentPrice: 0, //current price
-        subtotal: 0, 
-        shippingCharge: 0, 
+        totalOriginalPrice: 0,
+        totalCurrentPrice: 0,
+        totalDeliveryCharges: 0,
+        totalPlatformCharges: 0,
+        subtotal: 0,
         finalTotal: 0,
         message: "Cart is empty"
       };
@@ -176,8 +178,9 @@ const getCartWithProducts = async (userId) => {
     }
 
     // Process cart items and calculate totals
-    let totalOriginalPrice = 0; // initial price
-    let totalCurrentPrice = 0; // current price
+    let totalOriginalPrice = 0;
+    let totalCurrentPrice = 0;
+    let totalPlatformCharges = 0;
     const items = [];
 
     for (const cartItem of cartItems) {
@@ -186,24 +189,23 @@ const getCartWithProducts = async (userId) => {
 
       const seller = sellers.find(s => s.sellerId === product.sellerId);
       const quantity = Number(cartItem.quantity) || 1;
-      const price = Number(product.price) || 0;
-      
-      // Calculate discount (use product discount or 0 if not set)
+      const originalPrice = Number(product.price) || 0;
       const currentPrice = Number(product.currentPrice) || 0;
-      
-      // Calculate per-unit discount and discounted price
-      // const discountAmountPerUnit = Number((price * discountOnProduct / 100).toFixed(2));
-      // const discountedPricePerUnit = Number((price - discountAmountPerUnit).toFixed(2));
-      
-      // Calculate totals for this item
-      const itemOriginalPrice = price * quantity;
-      // const itemDiscount = discountAmountPerUnit * quantity;
-      // const itemDiscountedPrice = discountedPricePerUnit * quantity;
-      const itemCurrentPrice = currentPrice * quantity; 
+
+      // Calculate item totals
+      const itemOriginalPrice = originalPrice * quantity;
+      const itemCurrentPrice = currentPrice * quantity;
+
+      // Flat delivery charge of ₹49 per item
+      const deliveryCharges = 49;
+
+      // Platform charges per item (₹14.16 per product including GST)
+      const platformCharges = PLATFORM_CHARGE_WITH_GST * quantity;
 
       // Update cart totals
       totalOriginalPrice += itemOriginalPrice;
       totalCurrentPrice += itemCurrentPrice;
+      totalPlatformCharges += platformCharges;
 
       // Generate image URL
       let imageUrl = null;
@@ -220,28 +222,32 @@ const getCartWithProducts = async (userId) => {
         brand: product.brand,
         sellerId: product.sellerId,
         sellerName: seller?.sellerName,
-        price,
-        currentPrice,
+        price: originalPrice,          // Original price per unit
+        currentPrice: currentPrice,    // Current price per unit
         quantity,
-        // discountedPrice: discountedPricePerUnit, // This is per unit price
-        totalCurrentPrice: itemCurrentPrice, // Added total for the quantity
-        productCategory: product.productCategory,
-        description: product.description
+        totalCurrentPrice: itemCurrentPrice,  // Total current price for this item
+        deliveryCharges,               // Flat ₹49 delivery per item
+        platformCharges,               // Platform charges for this item
+        category: product.categoryId,
+        description: product.productDescription
       });
     }
 
+    // Calculate total delivery charges (₹49 per item)
+    const totalDeliveryCharges = items.length * 49;
+
     // Calculate final totals
-    const subtotal = totalOriginalPrice
-    const shippingCharge = subtotal < 2399 && subtotal > 0 ? 49 : 0;
-    const finalTotal = subtotal + shippingCharge;
+    const subtotal = totalCurrentPrice;
+    const finalTotal = subtotal + totalDeliveryCharges + totalPlatformCharges;
 
     return {
       totalItems: items.length,
       items,
       totalOriginalPrice: parseFloat(totalOriginalPrice.toFixed(2)),
       totalCurrentPrice: parseFloat(totalCurrentPrice.toFixed(2)),
+      totalDeliveryCharges: parseFloat(totalDeliveryCharges.toFixed(2)),
+      totalPlatformCharges: parseFloat(totalPlatformCharges.toFixed(2)),
       subtotal: parseFloat(subtotal.toFixed(2)),
-      shippingCharge,
       finalTotal: parseFloat(finalTotal.toFixed(2)),
       message: "Cart retrieved successfully"
     };
@@ -308,6 +314,6 @@ module.exports = {
     getUserActions: getUserActions,
     removeUserAction: deleteUserAction,
     handleToggleLike: handleToggleLike,
-    getCartWithProducts: getCartWithProducts,
+    getCartWithProducts,
     getLikedProducts
 };
