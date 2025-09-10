@@ -16,6 +16,8 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const webhookRoutes = require('./routes/webhookRoutes');
 const addressRoute = require('./routes/addressRoute');
 const ekartRoutes = require('./routes/ekartRoutes');
+const sseRoutes = require('./routes/sseRoutes'); 
+const delhivaryRoutes = require('./routes/delhivaryRoute'); 
 // const testRoute = require('./routes/testRoute');
 
 // CORS config
@@ -55,7 +57,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use('/api/address', addressRoute);
 app.use('/api/ekart', ekartRoutes);
-
+app.use('/api/sse', sseRoutes);     
+app.use('/api/delhivary', delhivaryRoutes); 
 // app.use('/api/v1/testToken', testRoute )
 
 
