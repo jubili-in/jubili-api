@@ -58,7 +58,7 @@ const createAddress = async (data) => {
         throw new Error('Invalid postal code format.');
     }
 
-    const addressId = uuidv4();
+    const addressId = postalCode+"-"+uuidv4();
     const timestamp = new Date().toISOString();
 
     // If this is marked as default, unset other default addresses first

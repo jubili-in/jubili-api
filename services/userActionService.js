@@ -197,7 +197,7 @@ const getCartWithProducts = async (userId) => {
       const itemCurrentPrice = currentPrice * quantity;
 
       // Flat delivery charge of ₹49 per item
-      const deliveryCharges = 49;
+      const delCharges = 49;
 
       // Platform charges per item (₹14.16 per product including GST)
       const platformCharges = PLATFORM_CHARGE_WITH_GST * quantity;
@@ -219,6 +219,7 @@ const getCartWithProducts = async (userId) => {
         productId: product.productId,
         productName: product.productName,
         imageUrl,
+        // addid
         brand: product.brand,
         sellerId: product.sellerId,
         sellerName: seller?.sellerName,
@@ -226,7 +227,8 @@ const getCartWithProducts = async (userId) => {
         currentPrice: currentPrice,    // Current price per unit
         quantity,
         totalCurrentPrice: itemCurrentPrice,  // Total current price for this item
-        deliveryCharges,               // Flat ₹49 delivery per item
+        deliveryCharges: delCharges * quantity,              // Delivery charges for this item
+        // deliveryCharges: function(pincode user + pincode seller + weight),              // Delivery charges for this item
         platformCharges,               // Platform charges for this item
         category: product.categoryId,
         description: product.productDescription
