@@ -29,11 +29,11 @@ const createOrder = async (orderData) => {
     isActive: true
   };
 
-//   console.log("Creating order in DB:", {
-//    PK: `ORDER#${orderId}`,
-//     SK: `ORDER#${orderId}`,
-//   ...orderItem
-// });
+  console.log("Creating order in DB:", {
+   PK: `ORDER#${orderId}`,
+    SK: `ORDER#${orderId}`,
+  ...orderItem
+});
 
   await ddbDocClient.send(new PutCommand({
     TableName: ORDERS_TABLE,

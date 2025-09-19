@@ -1,6 +1,7 @@
 //controllers/userCController.js
-const { getUserByEmailOrPhone, createUser } = require('../services/userService');
+const { getUserByEmailOrPhone, createUser, createGoogleUser } = require('../services/userService');
 const { sendVerificationEmail } = require('../services/emailService');
+const { getGoogleAuthURL, getGoogleUser } = require('../config/googleOAuth');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
@@ -152,4 +153,80 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { login, signup, verifyEmail };
+// Google OAuth handlers
+const initiateGoogleAuth = (req, res) => {
+  try {
+    const authUrl = getGoogleAuthURL();
+    res.redirect(authUrl);
+  } catch (error) {
+    console.error('Google auth initiation error:', error);
+    res.status(500).json({ message: 'Failed to initiate Google authentication' });
+  }
+};
+
+const handleGoogleCallback = async (req, res) => {
+  const { code, error } = req.query;
+
+  try {
+    if (error) {
+      return res.status(400).json({ message: 'Google authentication failed', error });
+    }
+
+    if (!code) {
+      return res.status(400).json({ message: 'Authorization code missing' });
+    }
+
+    // Get user info from Google
+    const googleUser = await getGoogleUser(code);
+    
+    if (!googleUser.email) {
+      return res.status(400).json({ message: 'Failed to get user email from Google' });
+    }
+
+    // Check if user exists
+    const existingUsers = await getUserByEmailOrPhone(googleUser.email, null);
+    let user;
+
+    if (existingUsers.length > 0) {
+      // User exists, log them in
+      user = existingUsers[0];
+    } else {
+      // Create new user
+      user = await createGoogleUser({
+        name: googleUser.name,
+        email: googleUser.email,
+        googleId: googleUser.id,
+        picture: googleUser.picture
+      });
+    }
+
+    // Generate JWT token (same format as normal login)
+    const payload = { user: { id: user.userId } };
+    const token = jwt.sign(payload, process.env.JWT_SECRET);
+
+    // Set cookie (same as normal login)
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
+
+    // Redirect to frontend with success, passing user data in a way that matches normal login
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const userDataQuery = encodeURIComponent(JSON.stringify({
+      userId: user.userId,
+      name: user.name,
+      email: user.email,
+      phone: user.phone
+    }));
+    res.redirect(`${frontendUrl}/login-success?token=${token}&user=${userDataQuery}`);
+
+  } catch (error) {
+    console.error('Google callback error:', error);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/login-error?message=Authentication failed`);
+  }
+};
+
+module.exports = { login, signup, verifyEmail, initiateGoogleAuth, handleGoogleCallback };

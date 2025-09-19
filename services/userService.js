@@ -54,4 +54,27 @@ const createUser = async (userData) => {
   return item;
 };
 
-module.exports = { getUserByEmailOrPhone, createUser };
+// Create user from Google OAuth data
+const createGoogleUser = async (googleUserData) => {
+  const userId = uuidv4();
+  const item = {
+    userId,
+    name: googleUserData.name,
+    email: googleUserData.email,
+    googleId: googleUserData.googleId,
+    picture: googleUserData.picture,
+    authProvider: 'google',
+    isEmailVerified: true, // Google emails are pre-verified
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+
+  await ddb.send(new PutCommand({
+    TableName: TABLE_NAME,
+    Item: item
+  }));
+
+  return item;
+};
+
+module.exports = { getUserByEmailOrPhone, createUser, createGoogleUser };
