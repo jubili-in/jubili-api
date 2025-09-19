@@ -197,7 +197,7 @@ const getCartWithProducts = async (userId) => {
       const itemCurrentPrice = currentPrice * quantity;
 
       // Flat delivery charge of ₹49 per item
-      const delCharges = 49;
+      const delCharges = 45;
 
       // Platform charges per item (₹14.16 per product including GST)
       const platformCharges = PLATFORM_CHARGE_WITH_GST * quantity;
@@ -215,11 +215,14 @@ const getCartWithProducts = async (userId) => {
         imageUrl = await generatePresignedUrl(product.imageUrls);
       }
 
+      // conNPM 
       items.push({
         productId: product.productId,
+        addressId: product.addressId,
         productName: product.productName,
         imageUrl,
         // addid
+        dimensions: product.dimensions,
         brand: product.brand,
         sellerId: product.sellerId,
         sellerName: seller?.sellerName,
@@ -231,12 +234,12 @@ const getCartWithProducts = async (userId) => {
         // deliveryCharges: function(pincode user + pincode seller + weight),              // Delivery charges for this item
         platformCharges,               // Platform charges for this item
         category: product.categoryId,
-        description: product.productDescription
+        description: product.productDescription, 
       });
     }
 
     // Calculate total delivery charges (₹49 per item)
-    const totalDeliveryCharges = items.length * 49;
+    const totalDeliveryCharges = (items.length * 45); //for the user
 
     // Calculate final totals
     const subtotal = totalCurrentPrice;
