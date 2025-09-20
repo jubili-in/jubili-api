@@ -8,7 +8,6 @@ const generateOrderId = () => `order_${uuidv4().replace(/-/g, '').substring(0, 1
 
 const createOrder = async (orderData) => {
   console.log("Called");
-  // const orderId = 
   console.log("Generated Order ID:", orderData.orderId);
   const currentDate = new Date().toISOString();
 
@@ -30,8 +29,8 @@ const createOrder = async (orderData) => {
   };
 
   console.log("Creating order in DB:", {
-   PK: `ORDER#${orderId}`,
-    SK: `ORDER#${orderId}`,
+   PK: `ORDER#${orderData.orderId}`,
+    SK: `ORDER#${orderData.orderId}`,
   ...orderItem
 });
 

@@ -108,15 +108,7 @@ async function handleRazorpayWebhook(req, res) {
 
     }
 
-
-
-
-    // Process your webhook logic here
-    // Example: Update order status, send notifications, etc.
-
     res.status(200).send("OK");
-
-
   } catch (error) {
     console.error("❌ Webhook processing error:", error);
     res.status(500).send("Internal server error");
