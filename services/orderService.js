@@ -1,6 +1,7 @@
 const { ddbDocClient } = require('../config/dynamoDB');
 const { PutCommand, QueryCommand, ScanCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
+const { buildOrderItem } = require('../models/orderModel');
 
 const ORDERS_TABLE = 'Orders';
 
@@ -8,38 +9,23 @@ const generateOrderId = () => `order_${uuidv4().replace(/-/g, '').substring(0, 1
 
 const createOrder = async (orderData) => {
   console.log("Called");
-  // const orderId = 
-  console.log("Generated Order ID:", orderData.orderId);
-  const currentDate = new Date().toISOString();
 
-  const orderItem = {
-    PK: `ORDER#${orderData.orderId}`,
-    SK: `ORDER#${orderData.orderId}`,
-    orderId: orderData.orderId,
-    transactionId: orderData.transactionId,
-    userId: orderData.userId,
-    sellerId:orderData.items[0].sellerId,
-    items: orderData.items,
-    totalAmount: orderData.totalAmount,
-    address: orderData.address,
-    status: orderData.status,
-    paymentStatus: orderData.paymentStatus,
-    createdAt: currentDate,
-    updatedAt: currentDate,
-    isActive: true
-  };
+  // Build order item using orderModel
+  const orderItem = buildOrderItem(orderData);
 
   console.log("Creating order in DB:", {
-   PK: `ORDER#${orderId}`,
-    SK: `ORDER#${orderId}`,
-  ...orderItem
-});
+    PK: orderItem.PK,
+    SK: orderItem.SK,
+    orderId: orderItem.orderId,
+  });
 
-  await ddbDocClient.send(new PutCommand({
-    TableName: ORDERS_TABLE,
-    Item: orderItem,
-    ConditionExpression: 'attribute_not_exists(PK)'
-  }));
+  await ddbDocClient.send(
+    new PutCommand({
+      TableName: ORDERS_TABLE,
+      Item: orderItem,
+      ConditionExpression: "attribute_not_exists(PK)",
+    })
+  );
 
   return orderItem;
 };
@@ -81,10 +67,10 @@ const getOrdersByUser = async (userId) => {
         ExpressionAttributeValues: {
           ':pk': `USER#${userId}`
         },
-        ScanIndexForward: false, 
+        ScanIndexForward: false,
         Limit: 100
       };
-      
+
       const data = await ddbDocClient.send(new QueryCommand(params));
       return data.Items || [];
     } catch (gsiError) {
@@ -97,7 +83,7 @@ const getOrdersByUser = async (userId) => {
           },
           Limit: 100
         };
-        
+
         const scanData = await ddbDocClient.send(new ScanCommand(scanParams));
         return scanData.Items || [];
       }
@@ -116,15 +102,15 @@ const getOrdersBySeller = async (sellerId) => {
     try {
       const params = {
         TableName: ORDERS_TABLE,
-        IndexName: 'GSI2', 
+        IndexName: 'GSI2',
         KeyConditionExpression: 'GSI2PK = :pk',
         ExpressionAttributeValues: {
           ':pk': `SELLER#${sellerId}`
         },
-        ScanIndexForward: false, 
+        ScanIndexForward: false,
         Limit: 100
       };
-      
+
       const data = await ddbDocClient.send(new QueryCommand(params));
       return data.Items || [];
     } catch (gsiError) {
@@ -137,7 +123,7 @@ const getOrdersBySeller = async (sellerId) => {
           },
           Limit: 100
         };
-        
+
         const scanData = await ddbDocClient.send(new ScanCommand(scanParams));
         return scanData.Items || [];
       }

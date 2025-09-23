@@ -89,8 +89,8 @@ async function handleRazorpayWebhook(req, res) {
 
 
       try {
-
-        const createdOrder = await orderService.createOrder(orderData);
+// for each items => 
+        const createdOrder = await orderService.createOrder(orderData); //row 
 
         // Notify frontend of success
         sseController.sendOrderEvent(userId, {
