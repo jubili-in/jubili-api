@@ -7,21 +7,15 @@ function generateOrderId() {
 function buildOrderItem({ 
     orderData,
     product, 
-    quantity, 
-    address,
     paymentMode = 'Prepaid',
     transportMode = 'Surface',
-    pickupLocation,
-    customerEmail,
-    deliveryTotal = 0,      // total delivery charge
-    deliveryUserPayable = 0,
-    deliverySellerPayable = 0,
-    serviceCharge = 0
 }) {
-    const orderId = orderData.orderId; 
+    const orderId = orderData.order_id; 
     const currentTime = new Date().toISOString();
 
-    const price = parseFloat(product.price);
+    const totalAmount = orderData.amount / 100;
+    const sellerProfitValue = product.unitItemPrice * product.quantity - (product.deliveryBySeller || 0); 
+
     // const gst = parseFloat(product.gst || 0);
 
     // const subTotal = price * quantity;
@@ -31,29 +25,29 @@ function buildOrderItem({
     // const totalAmount = subTotal + gstAmount + deliveryUserPayable;
 
     // Seller profit = product amount - seller portion of delivery - service charge
-    const sellerProfitValue = subTotal - deliverySellerPayable - serviceCharge;
+
 
     return {
-    PK: `ORDER#${orderId}`, //done
-    SK: `ORDER#${orderId}`, //done // product id
+    PK: orderId,//ok
+    SK: product.productId, //ok
 
-    orderId, //done
-    orderNumber: `SO${orderId}`, // SaleOrderNumber //done
-    transactionId: orderData.transactionId || null, //done
-    userId: orderData.userId || null, // done
+    // orderId, //ok
+    orderNumber: `SO${orderId}`, // SaleOrderNumber //ok
+    transactionId: orderData.id || null, //ok
+    userId: orderData.notes.userId || null, //ok
 
-    customerName: address.name || '',
-    customerEmail: customerEmail || '',
-    customerPhone: address.phone || '',
+    customerName: orderData.notes.address.name, //ok
+    customerEmail: orderData.email, //ok
+    customerPhone: orderData.notes.address.phoneNumber, // ok
 
-    pickupLocation,
-    transportMode, //done
-    paymentMode, //done
-    codAmount: 0,
+    pickupLocation: product.pickupLocation,  //ok
+    transportMode, //ok
+    paymentMode, //ok
+    codAmount: 0, //ok
 
-    sellerId: product.sellerId,
-    sellerName: product.sellerName || '',
-    sellerGSTNumber: product.sellerGST || '',
+    sellerId: product.sellerId, // ok
+    sellerName: product.sellerName || null, // ok
+    sellerGSTNumber: product.sellerGST || null, //ok
 
     sellerAddressLine1: product.sellerAddressLine1 || '',
     sellerAddressLine2: product.sellerAddressLine2 || '',
@@ -61,53 +55,54 @@ function buildOrderItem({
     sellerState: product.sellerState || '',
     sellerPincode: product.sellerPincode || '',
     
-    productId: product.productId,
-    productName: product.name,
-    quantity,
-    packagingType: product.packagingType || 'Box',
-    fragile: product.fragile || false,
+    productId: product.productId, //ok
+    productName: product.productName, //ok
+    quantity: product.quantity, //ok
+    packagingType: product.packagingType, //ok
+    fragile: product.fragile, //ok
     
     // price,
-    unitItemPrice: parseFloat(price.toFixed(2)),
-    subTotal,
-    gstAmount,
-    totalAmount: orderData.totalAmount || parseFloat(totalAmount.toFixed(2)), //done
-    quantityOrdered: quantity,
+    unitItemPrice: product.unitItemPrice, // ok
+    // subTotal: ,
+    gstAmount: null, // ok
+    totalAmount: totalAmount, //ok
+    quantityOrdered: product.quantity, //ok
 
-    discountType: null,
-    discountValue: null,
-    taxClass: null,
+    discountType: null, //ok
+    discountValue: null, //ok
+    taxClass: null, //ok
 
-    shippingAddressLine1: address.line1 || '', //user address
-    shippingAddressLine2: address.line2 || '',
-    shippingCity: address.city || '',
-    shippingState: address.state || '',
-    shippingPincode: address.pincode || '',
 
-    LengthCm: product.lengthCm || 0,
-    BreadthCm: product.breadthCm || 0,
-    HeightCm: product.heightCm || 0,
-    WeightGm: product.weightGm || 0,
+    shippingAddressLine1: orderData.notes.address.addressLine1, //user address //ok
+    shippingAddressLine2: orderData.notes.address.addressLine2, //ok
+    shippingCity: orderData.notes.address.city, //ok
+    shippingState: orderData.notes.address.state, // ok
+    shippingPincode: orderData.notes.address.postalCode, //ok
 
-    billingAddressSameAsShipping: true,
+    LengthCm: product.prodcutDimention.length, //ok
+    BreadthCm: product.prodcutDimention.breadth, //ok
+    HeightCm: product.prodcutDimention.height, //ok
+    WeightGm: product.prodcutDimention.weight, //ok
 
-    status: 'pending',
-    paymentStatus: 'unpaid',
+    billingAddressSameAsShipping: true, // ok
 
-    shippingProvider: 'Delhivery',
-    shippingAwb: null,
-    shippingTrackingUrl: null,
-    shippingStatus: 'pending',
-    shippingWeight: product.dimensions?.weight || product.weight || 0.5,
+    status: 'pending', //ok
+    paymentStatus: 'unpaid', //ok
 
-    deliveryTotal,
-    deliveryUserPayable,
-    deliverySellerPayable,
-    serviceCharge,
-    sellerProfitValue,
+    shippingProvider: 'Delhivery', //ok
+    shippingAwb: null, //ok
+    shippingTrackingUrl: null, //ok
+    shippingStatus: 'pending', //ok
+    shippingWeight: product.prodcutDimention.weight || '',  //ok
 
-    ItemSkuCode: "SKU1001",             // mandatory, maps to productId
-    ItemSkuName: "Blue T-Shirt",   
+    // deliveryTotal: ,
+    deliveryUserPayable: product.deliveryByUser, //ok 
+    deliverySellerPayable: product.deliveryBySeller, // ok
+    serviceCharge: product.serviceCharge || 10, //ok
+    sellerProfitValue: sellerProfitValue, //ok
+
+    ItemSkuCode: product.productId,    //ok       // mandatory, maps to productId
+    ItemSkuName: product.productName, //ok
 
     createdAt: currentTime,
     updatedAt: currentTime,

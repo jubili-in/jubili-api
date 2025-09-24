@@ -7,51 +7,91 @@ const ORDERS_TABLE = 'Orders';
 
 const generateOrderId = () => `order_${uuidv4().replace(/-/g, '').substring(0, 12)}`;
 
-const createOrder = async (orderData) => {
-  console.log("Called");
+  const createOrder = async (orderData) => {
+    console.log("createOrder called");
 
-  // Build order item using orderModel
-  const orderItem = buildOrderItem(orderData);
+    // Parse address and items safely
+    let address = {};
+    let items = [];
 
-  console.log("Creating order in DB:", {
-    PK: orderItem.PK,
-    SK: orderItem.SK,
-    orderId: orderItem.orderId,
-  });
+    try {
+      address = JSON.parse(orderData.notes.address);
+    } catch (err) {
+      console.error("Failed to parse address:", err);
+    }
 
-  await ddbDocClient.send(
-    new PutCommand({
-      TableName: ORDERS_TABLE,
-      Item: orderItem,
-      ConditionExpression: "attribute_not_exists(PK)",
-    })
-  );
+    try {
+      items = JSON.parse(orderData.notes.items);
+    } catch (err) {
+      console.error("Failed to parse items:", err);
+    }
 
-  return orderItem;
-};
+    const createdItems = [];
 
-const updateOrderPaymentStatus = async (orderId, updates) => {
-  const params = {
-    TableName: ORDERS_TABLE,
-    Key: {
-      PK: `ORDER#${orderId}`,
-      SK: `ORDER#${orderId}`
-    },
-    UpdateExpression: "SET paymentStatus = :status, paymentMethod = :method, #statusAttr = :orderStatus, updatedAt = :updatedAt",
-    ExpressionAttributeNames: {
-      "#statusAttr": "status"
-    },
-    ExpressionAttributeValues: {
-      ":status": updates.paymentStatus,
-      ":method": updates.paymentMethod,
-      ":orderStatus": updates.status,
-      ":updatedAt": new Date().toISOString()
-    },
-    ReturnValues: "ALL_NEW"
+    for (const product of items) {
+      const orderItem = buildOrderItem({
+        orderData: { ...orderData, notes: { ...orderData.notes, address } },
+        product,
+      });
+
+      console.log("Inserting item:", orderItem.SK);
+
+      try {
+        await ddbDocClient.send(
+          new PutCommand({
+            TableName: ORDERS_TABLE,
+            Item: orderItem,
+            ConditionExpression:
+              "attribute_not_exists(PK) AND attribute_not_exists(SK)",
+          })
+        );
+        createdItems.push(orderItem);
+      } catch (err) {
+        console.error("Failed to insert item:", err);
+      }
+    }
+
+    return createdItems; // array of inserted items
   };
 
-  const { Attributes } = await ddbDocClient.send(new UpdateCommand(params));
-  return Attributes;
+const updateOrderPaymentStatus = async (orderId, updates, products) => {
+  if (!products || !products.length) {
+    throw new Error("No products provided for update");
+  }
+
+  // Map each product SK to an UpdateCommand promise
+  console.log(orderId,"eta hoi")
+  const updatePromises = products.map((sk) => {
+    const params = {
+      TableName: ORDERS_TABLE,
+      Key: {
+        PK: orderId,
+        SK: sk,
+      },
+      UpdateExpression:
+        "SET paymentStatus = :status, paymentMethod = :method, #statusAttr = :orderStatus, updatedAt = :updatedAt",
+      ExpressionAttributeNames: {
+        "#statusAttr": "status",
+      },
+      ExpressionAttributeValues: {
+        ":status": updates.paymentStatus,
+        ":method": updates.paymentMethod,
+        ":orderStatus": updates.status,
+        ":updatedAt": new Date().toISOString(),
+      },
+      ReturnValues: "ALL_NEW",
+    };
+
+    return ddbDocClient.send(new UpdateCommand(params));
+  });
+
+  // Run all updates in parallel
+  const results = await Promise.all(updatePromises);
+
+  // Extract updated attributes from results
+  const updatedItems = results.map((res) => res.Attributes);
+
+  return updatedItems; // array of updated items
 };
 
 

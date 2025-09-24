@@ -68,29 +68,9 @@ async function handleRazorpayWebhook(req, res) {
       sseController.sendOrderEvent(userId, { type: "ORDER_CREATING" });
 
       const amount = paymentData.amount / 100;
-
-
-      // Prepare orderData for your createOrder service
-      const orderData = {
-        orderId: paymentData.order_id, 
-        userId,
-        transactionId: paymentData.id,
-        items: JSON.parse(paymentData.notes.items),
-        totalAmount: parseFloat(amount.toFixed(2)),
-        address: JSON.parse(paymentData.notes.address),
-        status: "pending",
-        paymentStatus: "paid",
-        razorpayOrderData: razorpayOrderData,
-      };
-
-
-
-      // console.log(orderData); 
-
-
       try {
-// for each items => 
-        const createdOrder = await orderService.createOrder(orderData); //row 
+        const createdOrder = await orderService.createOrder(paymentData); //row 
+
 
         // Notify frontend of success
         sseController.sendOrderEvent(userId, {

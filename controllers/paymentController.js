@@ -57,7 +57,8 @@ const createRazorpayOrder = async (req, res) => {
 
 const verifyPayment = async (req, res) => {
     try {
-        const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId } = req.body;
+      const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId, products } = req.body;
+      console.log('verify called', products, orderId); 
 
         console.log(orderId, "from verify"); 
 
@@ -83,7 +84,7 @@ const verifyPayment = async (req, res) => {
         }
 
         // Update order status
-        const updatedOrder = await orderService.updateOrderPaymentStatus(orderId, {
+        const updatedOrder = await orderService.updateOrderPaymentStatus(orderId, products, {
             paymentStatus: 'paid',
             paymentId: razorpay_payment_id,
             paymentMethod: 'razorpay',
