@@ -263,6 +263,62 @@ const getCartWithProducts = async (userId) => {
   }
 };
 
+const getFavWithProducts = async (userId) => {
+  try {
+    const cartItems = await getUserActions({ userId, actionType: 'FAVOURITE' });
+    if (!cartItems.length) {
+      return { 
+        items: [], 
+        message: "FAVOURITE is empty"
+      };
+    }
+
+    // Get all product IDs from cart
+    const productIds = cartItems.map(item => item.productId);
+
+    // Find all products in cart
+    const { Items: products = [] } = await ddbDocClient.send(new ScanCommand({
+      TableName: PRODUCT_TABLE,
+      FilterExpression: 'contains(:productIds, productId)',
+      ExpressionAttributeValues: {
+        ':productIds': productIds
+      }
+    }));
+    
+    const items = [];
+
+    for (const cartItem of cartItems) {
+      const product = products.find(p => p.productId === cartItem.productId);
+      if (!product) continue;
+
+      // Generate image URL
+      let imageUrl = null;
+      if (Array.isArray(product.imageUrls) && product.imageUrls.length > 0) {
+        imageUrl = await generatePresignedUrl(product.imageUrls[0]);
+      } else if (typeof product.imageUrls === 'string' && product.imageUrls) {
+        imageUrl = await generatePresignedUrl(product.imageUrls);
+      }
+
+      // conNPM 
+      items.push({
+        productId: product.productId,
+        productName: product.productName,
+        imageUrl,
+        description: product.productDescription, 
+      });
+    }
+
+    return {
+      items,
+      message: "Favourite items retrieved successfully"
+    };
+
+  } catch (error) {
+    console.error('Favourite service error:', error);
+    throw error;
+  }
+};
+
 /**
  * Get liked products of a user with product details and presigned image URL.
  */
@@ -320,5 +376,6 @@ module.exports = {
     removeUserAction: deleteUserAction,
     handleToggleLike: handleToggleLike,
     getCartWithProducts,
-    getLikedProducts
+    getLikedProducts,
+    getFavWithProducts
 };
