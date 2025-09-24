@@ -22,6 +22,18 @@ exports.getUserActions = async (req, res) => {
   }
 };
 
+exports.getFavProducts = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    const cartData = await userActionService.getFavWithProducts(userId);
+    res.status(200).json(cartData);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
+
 exports.removeUserAction = async (req, res) => {
   try {
     const { userId, productId, actionType } = req.body;

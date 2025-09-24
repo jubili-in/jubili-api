@@ -13,5 +13,6 @@ router.get('/cart', userActionController.getCart);
 
 // Get liked products for authenticated user
 router.get('/liked-products', authenticateUser, userActionController.getLikedProducts);
+router.get('/get-fev', userActionController.getFavProducts);
 
 module.exports = router;
