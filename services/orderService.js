@@ -54,14 +54,15 @@ const generateOrderId = () => `order_${uuidv4().replace(/-/g, '').substring(0, 1
     return createdItems; // array of inserted items
   };
 
-const updateOrderPaymentStatus = async (orderId, updates, products) => {
-  if (!products || !products.length) {
-    throw new Error("No products provided for update");
-  }
+const updateOrderPaymentStatus = async (orderId,productIds, updates) => {
+  // console.log(productIds); 
+  // if (!products || !products.length) {
+  //   throw new Error("No products provided for update");
+  // }
 
   // Map each product SK to an UpdateCommand promise
-  console.log(orderId,"eta hoi")
-  const updatePromises = products.map((sk) => {
+  // console.log(orderId,"eta hoi")
+  const updatePromises = productIds?.map((sk) => {
     const params = {
       TableName: ORDERS_TABLE,
       Key: {

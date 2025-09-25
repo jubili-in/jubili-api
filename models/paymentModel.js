@@ -9,10 +9,10 @@ function buildPaymentItem({ userId, transactionId, totalAmount, paymentMethod = 
     const currentTime = new Date().toISOString();
 
     return {
-        PK: `TXN#${transactionId}`,
-        SK: `TXN#${transactionId}`,
-        transactionId,
-        userId,
+        PK: transactionId,
+        SK: userId,
+        // transactionId,
+        // userId,
         status: 'initiated',
         totalAmount,
         paymentMethod,

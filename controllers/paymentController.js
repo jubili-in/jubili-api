@@ -7,7 +7,7 @@ const { buildPaymentItem } = require('../models/paymentModel');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET 
+  key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
 const ORDERS_TABLE = 'Orders';
@@ -30,7 +30,7 @@ const createRazorpayOrder = async (req, res) => {
       receipt,
       payment_capture: 1,
       notes: {
-        orderId, 
+        orderId,
         userId,
         address: JSON.stringify(address),
         items: JSON.stringify(items)
@@ -56,71 +56,76 @@ const createRazorpayOrder = async (req, res) => {
 };
 
 const verifyPayment = async (req, res) => {
-    try {
-      const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId, products } = req.body;
-      console.log('verify called', products, orderId); 
+  try {
+    const { razorpay_payment_id, razorpay_order_id, razorpay_signature, orderId, productIds } = req.body;
+    // if (!Array.isArray(productIds)) {
+    //   productIds = [productIds]; // wrap single product into an array
+    // }
+    // console.log(typeof productIds, ' eta hoi ');
 
-        console.log(orderId, "from verify"); 
+    // console.log(orderId, "from verify");
 
-        if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing required parameters"
-            });
-        }
-
-        // Verify signature
-        const body = `${razorpay_order_id}|${razorpay_payment_id}`;
-        const expectedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-            .update(body)
-            .digest('hex');
-
-        if (expectedSignature !== razorpay_signature) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid payment signature"
-            });
-        }
-
-        // Update order status
-        const updatedOrder = await orderService.updateOrderPaymentStatus(orderId, products, {
-            paymentStatus: 'paid',
-            paymentId: razorpay_payment_id,
-            paymentMethod: 'razorpay',
-            status: 'confirmed'
-        });
-
-        // Create payment record
-        const paymentItem = buildPaymentItem({
-            userId: updatedOrder.userId,
-            transactionId: updatedOrder.transactionId,
-            totalAmount: updatedOrder.totalAmount,
-            paymentMethod: 'razorpay',
-            razorpayPaymentId: razorpay_payment_id,
-            razorpayOrderId: razorpay_order_id,
-            status: 'completed'
-        });
-
-        await ddbDocClient.send(new PutCommand({
-            TableName: PAYMENTS_TABLE,
-            Item: paymentItem
-        }));
-
-        res.status(200).json({
-            success: true,
-            message: "Payment verified successfully",
-            order: updatedOrder
-        });
-
-    } catch (error) {
-        console.error("Payment verification error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Payment verification failed",
-            error: error.message
-        });
+    if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required parameters"
+      });
     }
+
+    // Verify signature
+    const body = `${razorpay_order_id}|${razorpay_payment_id}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .update(body)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid payment signature"
+      });
+    }
+
+    // Update order status
+    const updatedOrder = await orderService.updateOrderPaymentStatus(orderId, productIds, {
+      paymentStatus: 'paid',
+      paymentId: razorpay_payment_id,
+      paymentMethod: 'razorpay',
+      status: 'confirmed'
+    });
+
+
+    console.log(updatedOrder, "updated order");
+    // Create payment record
+    const paymentItem = buildPaymentItem({
+      userId: updatedOrder[0].userId,
+      transactionId: updatedOrder[0].transactionId,
+      totalAmount: updatedOrder[0].totalAmount,
+      paymentMethod: 'razorpay',
+      razorpayPaymentId: razorpay_payment_id,
+      razorpayOrderId: razorpay_order_id,
+      status: 'completed'
+    });
+
+    await ddbDocClient.send(new PutCommand({
+      TableName: PAYMENTS_TABLE,
+      Item: paymentItem
+    }));
+
+    res.status(200).json({
+      success: true,
+      message: "Payment verified successfully",
+      order: updatedOrder
+    });
+
+  } catch (error) {
+    console.error("Payment verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Payment verification failed",
+      error: error.message
+    });
+  }
 };
 
 
@@ -162,37 +167,37 @@ const getPaymentStatus = async (req, res) => {
 
 
 const handleWebhook = async (req, res) => {
-    try {
-        const webhookSignature = req.headers['x-razorpay-signature'];
-        const webhookBody = req.body;
-        
-        // Verify webhook signature
-        const expectedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
-            .update(JSON.stringify(webhookBody))
-            .digest('hex');
-            
-        if (expectedSignature !== webhookSignature) {
-            return res.status(400).send('Invalid signature');
-        }
-        
-        // Handle different webhook events
-        switch (webhookBody.event) {
-            case 'payment.captured':
-                // Update payment status
-                await updatePaymentStatus(webhookBody.payload.payment.entity);
-                break;
-            case 'payment.failed':
-                // Handle failed payment
-                await handleFailedPayment(webhookBody.payload.payment.entity);
-                break;
-        }
-        
-        res.status(200).send('OK');
-    } catch (error) {
-        console.error('Webhook error:', error);
-        res.status(500).send('Error processing webhook');
+  try {
+    const webhookSignature = req.headers['x-razorpay-signature'];
+    const webhookBody = req.body;
+
+    // Verify webhook signature
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
+      .update(JSON.stringify(webhookBody))
+      .digest('hex');
+
+    if (expectedSignature !== webhookSignature) {
+      return res.status(400).send('Invalid signature');
     }
+
+    // Handle different webhook events
+    switch (webhookBody.event) {
+      case 'payment.captured':
+        // Update payment status
+        await updatePaymentStatus(webhookBody.payload.payment.entity);
+        break;
+      case 'payment.failed':
+        // Handle failed payment
+        await handleFailedPayment(webhookBody.payload.payment.entity);
+        break;
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(500).send('Error processing webhook');
+  }
 }
 
 
