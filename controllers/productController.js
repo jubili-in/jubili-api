@@ -46,6 +46,19 @@ const getProductById = async (req, res) => {
   }
 };
 
+const getSellerProducts = async (req, res) => {
+  try {
+    const sellerId = req.seller.sellerId;
+    
+    const product = await productService.getSellerProductsBySellerId(sellerId);
+    res.json(product);
+
+  } catch (err) {
+    console.error('Error fetching product:', err);
+    res.status(500).json({ error: 'Error fetching product' });
+  }
+};
+
 
 
 const getAllProducts = async (req, res) => {
@@ -136,5 +149,6 @@ module.exports = {
   getProductById,
   deleteProduct,
   getAllProducts,
-  searchProducts
+  searchProducts,
+  getSellerProducts
 };

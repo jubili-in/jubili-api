@@ -149,6 +149,24 @@ const searchProductsByName = async (queryName, userId = null) => {
   }
 };
 
+const getSellerProductsBySellerId = async (sellerId) => {
+  try {
+    const result = await ddbDocClient.send(
+      new ScanCommand({ 
+        TableName: productModel.tableName,
+        FilterExpression: 'sellerId = :sellerId',
+        ExpressionAttributeValues: {
+          ':sellerId': sellerId
+        }
+      })
+    );
+
+    return result.Items || [];
+  } catch (error) {
+    console.error('Error in getSellerProductsBySellerId:', error);
+    throw error;
+  }
+};
 
 const deleteProduct = async (productId, sellerId) => {
   if (!sellerId) {
@@ -176,4 +194,5 @@ module.exports = {
   deleteProduct,
   getAllProducts,
   searchProductsByName,
+  getSellerProductsBySellerId
 };
