@@ -210,15 +210,27 @@ const getOrderBySeller = async (req, res) => {
     const orders = await orderService.getOrdersBySeller(sellerId);
 
     const sellerOrders = orders.map(order => ({
-      orderId: order.orderId,
-      userId: order.userId,
+      productId: order.productId, 
+      transactionId: order.transactionId,
+      orderNumber: order.orderNumber,
       productName: order.productName,
       quantity: order.quantity,
       totalAmount: order.totalAmount,
-      status: order.status,
+      customerEmail: order.customerEmail, 
       createdAt: order.createdAt,
       paymentStatus: order.paymentStatus,
+      city: order.shippingCity, 
+      state: order.shippingState, 
+      pincode: order.shippingPincode,
+      unitItemPrice: order.unitItemPrice,
+      sellerProfitValue: order.sellerProfitValue, 
+      sellerPayableAmount: order.deliverySellerPayable,
+      gst: order.gstAmount, 
+      userPayable: order.deliveryUserPayable, 
+      paymentMethod: order.paymentMethod, 
+      packagingType: order.packagingType, 
       trackingUrl: order.trackingUrl,
+
       address: order.address
     }));
 

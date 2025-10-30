@@ -28,6 +28,7 @@ const corsOptions = {
         "https://sellers.jubili.in",
         "http://localhost:3000",
         "http://172.20.13.54:3000",
+        "http://localhost:5173",
     ],
     credentials: true,
 };
